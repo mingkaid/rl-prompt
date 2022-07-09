@@ -101,13 +101,14 @@ class SoftQModelBase(torch.nn.Module):
         if reward_name is not None:
             if reward_name in ['gpt2-sentiment-bleu-no-input', 'plm-classifier']:
                 self._reward_function = \
-                    reward_name_to_cls_map[reward_name](tst_dataset=tst_dataset,
-                                                        tst_data_seed=tst_data_seed,
-                                                        LM_type=LM_type,
-                                                        experiment=experiment,
-                                                        experiment_seed=experiment_seed,
+                    reward_name_to_cls_map[reward_name](dataset=tst_dataset,
+                                                        dataset_seed=tst_data_seed,
+                                                        # LM_type=LM_type,
+                                                        # experiment=experiment,
+                                                        # experiment_seed=experiment_seed,
                                                         kshot=kshot,
-                                                        task_name=task_name)
+                                                        # task_name=task_name
+                                                        )
             else:
                 self._reward_function = reward_name_to_cls_map[reward_name]()
             

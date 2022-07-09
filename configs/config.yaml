@@ -43,6 +43,10 @@ translation:
     num_warmup_batches_per_epoch: null
     # Hacks
     hack_truncate_length_constant: null
+    dataset: null,
+    dataset_seed: null,
+    task_lm: null,
+    
     # TST configs
     tst_dataset: 'yelp'
     tst_data_seed: 0

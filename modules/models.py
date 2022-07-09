@@ -192,7 +192,7 @@ class GPT2ConditionedMLP(nn.Module):
     def _load_tst_inputs(self) -> Dict[Tuple[Any], List[str]]: 
         tst_inputs = {}
         # tokenizer = self._generator.tokenizer
-        if self.dataset == 'yelp':
+        if self.dataset == 'yelp' or self.dataset == "SST-2":
             filepath_train_0 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.train.0.preprocess"
             filepath_train_1 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.train.1.preprocess"
             filepath_dev_0 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.dev.0.preprocess"
