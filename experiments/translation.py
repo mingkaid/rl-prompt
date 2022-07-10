@@ -105,18 +105,16 @@ def prepare_model(
         ModelClass: Callable = partial(
             GPT2ConditionedMLP,
             config_name=config.architecture,
-            device=0,
-            # TST arguments
-            tst_dataset=config.tst_dataset,
-            tst_data_seed=config.tst_data_seed,
-            policy_lm='distilgpt2',
-            input_specific=True,
-            logit_bias=0,
-            dataset=config.tst_dataset,
-            dataset_seed=config.tst_data_seed,
-            dataset_basepath='/data/mingkai/prompt-generation/dirty-code/rl-prompt',
-            n_repeats=4,
-            fluent_prompt=False)
+            # MLP-specific parameters
+            mlp_policy_lm=config.mlp_policy_lm,
+            mlp_input_specific=config.mlp_input_specific,
+            mlp_logit_bias=config.mlp_logit_bias,
+            mlp_n_repeats=config.tst_n_repeats,
+            mlp_fluent_prompt=config.mlp_fluent_prompt,
+            # Prompt task parameters
+            prompt_dataset=config.prompt_dataset,
+            prompt_dataset_seed=config.prompt_dataset_seed,
+            prompt_dataset_basepath=config.prompt_dataset_basepath)
 
     behavior_model = None
     if use_behavior_model is True:
@@ -156,15 +154,19 @@ def prepare_model(
         reward_name=config.reward_name,
         # Hacks not implemented in parent class
         hack_truncate_length_constant=config.hack_truncate_length_constant,
-        # TST arguments
-        tst_dataset=config.tst_dataset,
-        tst_data_seed=config.tst_data_seed,
-        # Classification arguments
-        LM_type=config.LM_type,
-        experiment=config.experiment,
-        experiment_seed=config.experiment_seed,
-        kshot=config.kshot,
-        task_name=config.task,
+        # prompt reward parameters
+        prompt_task_lm=config.prompt_task_lm,
+        prompt_dataset=config.prompt_dataset,
+        prompt_dataset_seed=config.prompt_dataset_seed,
+        prompt_dataset_basepath=config.prompt_dataset_basepath,
+        # text style transfer arguments
+        tst_clf_basepath=config.tst_clf_basepath,
+        tst_n_repeats=config.tst_n_repeats,
+        tst_num_samples=config.tst_num_samples, # Num of samples from which to take the output
+        tst_num_bootstraps=config.tst_num_bootstraps, # Num of bootstraps to reduce reward randomness
+        # classification arguments
+        clf_kshot=config.clf_kshot,
+        clf_num_classes=config.clf_num_classes,
         # Deprecated Arguments
         use_target_network=config.use_target_network,
         target_sql_loss_impl=config.target_sql_loss_impl
@@ -560,6 +562,7 @@ def main(config: omegaconf.DictConfig) -> None:
         if config.reward_name in ["rouge", "bleurt", "sentiment", "gpt2-topic", "gpt2-bleu", 
                                   "gpt2-bleu-sentiment", "gpt2-bleu-no-input", "gpt2-sentiment-no-input",
                                   "gpt2-sentiment-bleu-no-input", "gpt2-sentiment-bertscore-no-input",
+                                  'plm-classifier', 'prompted-text-style-transfer', 'prompted-classification',
                                   'gpt2-trigger','gpt2-classifier',
                                   "entailment", "entailment2", "entailment3", "toxicity"]:
             if unique_pairs_file is not None:

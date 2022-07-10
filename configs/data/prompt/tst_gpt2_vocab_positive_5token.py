@@ -1,11 +1,13 @@
 import os
 
+base_path = os.path.abspath(os.path.join('.', os.pardir, os.pardir, os.pardir))
+assert base_path.endswith('rl-prompt')
+base_path = os.path.join(base_path, 'data/prompt-gpt2-vocab')
 
-base_path = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-words"
 max_source_length = 512
 max_decoding_length = 5
 
-source_vocab_file = os.path.join(base_path, "vocab.source.negative")
+source_vocab_file = os.path.join(base_path, "vocab.source.positive")
 target_vocab_file = os.path.join(base_path, "vocab.target.gpt2")
 
 train = {
@@ -13,11 +15,11 @@ train = {
     "allow_smaller_final_batch": False,
     "shuffle": False,
     "source_dataset": {
-        "files": os.path.join(base_path, "train.source.negative"),
+        "files": os.path.join(base_path, "train.source.positive"),
         "vocab_file": source_vocab_file,
     },
     "target_dataset": {
-        "files": os.path.join(base_path, "train.target.negative"),
+        "files": os.path.join(base_path, "train.target.positive"),
         "vocab_file": target_vocab_file,
     }
 }
@@ -27,11 +29,11 @@ val = {
     "batch_size": 16,
     "shuffle": False,
     "source_dataset": {
-        "files": os.path.join(base_path, "dev.source.negative"),
+        "files": os.path.join(base_path, "dev.source.positive"),
         "vocab_file": source_vocab_file,
     },
     "target_dataset": {
-        "files": os.path.join(base_path, "dev.target.negative"),
+        "files": os.path.join(base_path, "dev.target.positive"),
         "vocab_file": target_vocab_file,
     }
 }
@@ -41,11 +43,11 @@ test = {
     "batch_size": 16,
     "shuffle": False,
     "source_dataset": {
-        "files": os.path.join(base_path, "test.source.negative"),
+        "files": os.path.join(base_path, "test.source.positive"),
         "vocab_file": source_vocab_file,
     },
     "target_dataset": {
-        "files": os.path.join(base_path, "test.target.negative"),
+        "files": os.path.join(base_path, "test.target.positive"),
         "vocab_file": target_vocab_file,
     }
 }

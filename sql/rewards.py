@@ -83,40 +83,44 @@ class PromptedTextStyleTransferReward(object):
     END_PUNCT = '"'
     def __init__(
             self,
-            # TST arguments
-            task_lm: str = 'distilgpt2',
-            dataset: Optional[str] = None,
-            dataset_seed: Optional[int] = None,
-            dataset_basepath: str = '/data/mingkai/prompt-generation/dirty-code/rl-prompt',
-            dataset_clf_basepath: str = '/data/mingkai/prompt-generation/soft-Q-learning-for-text-generation/experiments/yelp_sentiment_classifier',
-            n_repeats: Optional[int] = 4,
-            num_samples: int = 32, # Num of samples from which to take the output
-            num_bootstraps: int = 4, # Num of bootstraps to reduce reward randomness
+            # Prompt Reward Parameters
+            prompt_task_lm: str = 'distilgpt2',
+            prompt_dataset: Optional[str] = None,
+            prompt_dataset_seed: Optional[int] = None,
+            prompt_dataset_basepath: str = '/data/mingkai/prompt-generation/dirty-code/rl-prompt',
+            # TST-specific parameters
+            tst_clf_basepath: str = '/data/mingkai/prompt-generation/soft-Q-learning-for-text-generation/experiments/yelp_sentiment_classifier',
+            tst_n_repeats: Optional[int] = 4,
+            tst_num_samples: int = 32, # Num of samples from which to take the output
+            tst_num_bootstraps: int = 4, # Num of bootstraps to reduce reward randomness
             **kwargs
     ) -> None:
 
         # https://huggingface.co/gpt2
-        generator_model = task_lm
+        generator_model = prompt_task_lm
         print('Task LM:', generator_model)
-        generator_device = 0
-        reward_device = 0
+        generator_device = 0 # TODO
+        reward_device = 0 # TODO
         tokenizer = AutoTokenizer.from_pretrained(generator_model, pad_token='<|endoftext|>')
         self._generator = pipeline(
             "text-generation",
             model=generator_model,
             tokenizer=tokenizer,
             device=generator_device)
-        self.num_samples = num_samples
-        self.num_bootstraps = num_bootstraps
+        self.num_samples = tst_num_samples
+        self.num_bootstraps = tst_num_bootstraps
         
-        self.dataset = dataset
-        self.seed = dataset_seed
-        self.basepath = dataset_basepath
+        self.dataset = prompt_dataset
+        self.seed = prompt_dataset_seed
+        if prompt_dataset_basepath == '.': # TODO
+            self.basepath = os.path.abspath(os.path.join('.', os.pardir, os.pardir, os.pardir))
+        else:
+            self.basepath = prompt_dataset_basepath
         print(self.basepath)
         dataset_clf_tokenizers = {'yelp': 'bert-base-uncased',
                                   'shakespeare': 'bert-base-uncased',}
-        dataset_clf_paths = {'yelp': dataset_clf_basepath + "/results-bert-base/checkpoint-10410",
-                             'shakespeare': dataset_clf_basepath + f"/shakespeare-bert-base-uncased-train-100-{self.seed}"}
+        dataset_clf_paths = {'yelp': tst_clf_basepath + "/results-bert-base/checkpoint-10410",
+                             'shakespeare': tst_clf_basepath + f"/shakespeare-bert-base-uncased-train-100-{self.seed}"}
         
         self.lower = ('lower' in self.dataset) or (self.dataset == 'yelp')
         self._classifier = pipeline(
@@ -128,7 +132,7 @@ class PromptedTextStyleTransferReward(object):
         self._tst_templates = ['{prompt} "{sentence_1}" "']
         self._counter = 0
         self.tokens_explored = set()
-        self.n_repeats = n_repeats
+        self.n_repeats = tst_n_repeats
         # self.ctc_scorer = StyleTransferScorer(align='E-roberta')
         self._bert_scorer = BERTScorer('roberta-large', device=reward_device, rescale_with_baseline=True, lang='en')
         
@@ -496,22 +500,28 @@ class PromptedClassificationReward(object):
 
     def __init__(
             self,
-            task_lm: str = 'roberta-large',
-            dataset: Optional[str] = None,
-            dataset_seed: Optional[int] = None,
-            dataset_basepath: str = '/data/mingkai/prompt-generation/dirty-code/rl-prompt',
-            kshot: int = 16,
-            num_classes: int = 2,
+            # Prompt Reward Parameters
+            prompt_task_lm: str = 'roberta-large',
+            prompt_dataset: Optional[str] = None,
+            prompt_dataset_seed: Optional[int] = None,
+            prompt_dataset_basepath: str = '/data/mingkai/prompt-generation/dirty-code/rl-prompt',
+            # Classification-specific parameters
+            clf_kshot: int = 16,
+            clf_num_classes: int = 2,
             **kwargs
     ) -> None:
 
         self.device = device
-        self.dataset = dataset
-        self.dataset_seed = dataset_seed
-        self.dataset_basepath = dataset_basepath
-        self.kshot = kshot
-        self.task_lm = task_lm
-        print('Task LM:', task_lm)
+        self.dataset = prompt_dataset
+        self.dataset_seed = prompt_dataset_seed
+        if prompt_dataset_basepath == '.': # TODO
+            self.dataset_basepath = os.path.abspath(os.path.join('.', os.pardir, os.pardir, os.pardir))
+        else:
+            self.dataset_basepath = prompt_dataset_basepath
+        self.kshot = clf_kshot
+        self.num_classes = clf_num_classes
+        self.task_lm = prompt_task_lm
+        print('Task LM:', self.task_lm)
         if 'gpt' in self.task_lm: # left-to-right LM
             self._tokenizer = AutoTokenizer.from_pretrained(self.task_lm, pad_token='<|endoftext|>')
             self._generator = GPT2LMHeadModel.from_pretrained(self.task_lm).to(self.device)
@@ -1379,7 +1389,7 @@ class PromptedClassificationReward(object):
 
     
 reward_name_to_cls_map = {
-    "gpt2-sentiment-bleu-no-input": PromptedTextStyleTransferReward,
-    'plm-classifier': PromptedClassificationReward,
+    "prompted-text-style-transfer": PromptedTextStyleTransferReward,
+    'prompted-classification': PromptedClassificationReward,
 }
 

@@ -43,16 +43,21 @@ translation:
     num_warmup_batches_per_epoch: null
     # Hacks
     hack_truncate_length_constant: null
-    dataset: null,
-    dataset_seed: null,
-    task_lm: null,
-    
-    # TST configs
-    tst_dataset: 'yelp'
-    tst_data_seed: 0
-    # Classification configs
-    LM_type: "distilgpt2"
-    experiment: "Test"
-    experiment_seed: 0
-    kshot: -1
-    task: "SST-2"
+    # MLP-specific parameters
+    mlp_policy_lm: "distilgpt2"
+    mlp_input_specific: null
+    mlp_logit_bias: 0
+    mlp_fluent_prompt: false
+    # prompt reward parameters
+    prompt_task_lm: null
+    prompt_dataset: null
+    prompt_dataset_seed: null
+    prompt_dataset_basepath: "."
+    # text style transfer arguments
+    tst_clf_basepath: "/data/mingkai/prompt-generation/soft-Q-learning-for-text-generation/experiments/yelp_sentiment_classifier"
+    tst_n_repeats: 4
+    tst_num_samples: 32 # Num of samples from which to take the output
+    tst_num_bootstraps: 4 # Num of bootstraps to reduce reward randomness
+    # classification arguments
+    clf_kshot: 16
+    clf_num_classes: -1

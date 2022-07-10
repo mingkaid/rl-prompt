@@ -49,15 +49,19 @@ class SoftQModelBase(torch.nn.Module):
             top_p: Optional[float] = None,
             beam_width: Optional[int] = None,
             reward_name: Optional[str] = None,
-            # TST arguments
-            tst_dataset: Optional[str] = None,
-            tst_data_seed: Optional[int] = None,
-            # Classification arguments
-            LM_type: str = 'gpt2',
-            experiment: str = 'Test',
-            experiment_seed: int = 0,
-            kshot: int = -1,
-            task_name: str = 'SST-2',
+            # prompt reward parameters
+            prompt_task_lm: Optional[str] = None,
+            prompt_dataset: Optional[str] = None,
+            prompt_dataset_seed: Optional[int] = None,
+            prompt_dataset_basepath: Optional[str] = None,
+            # text style transfer arguments
+            tst_clf_basepath: Optional[str] = None,
+            tst_n_repeats: Optional[int] = None,
+            tst_num_samples: Optional[int] = None, # Num of samples from which to take the output
+            tst_num_bootstraps: Optional[int] = None, # Num of bootstraps to reduce reward randomness
+            # classification arguments
+            clf_kshot: Optional[int] = None,
+            clf_num_classes: Optional[int] = None
     ) -> None:
         super().__init__()
         if (target_update_method is not None and
@@ -99,16 +103,21 @@ class SoftQModelBase(torch.nn.Module):
         self._beam_width = beam_width
 
         if reward_name is not None:
-            if reward_name in ['gpt2-sentiment-bleu-no-input', 'plm-classifier']:
+            if reward_name in ['prompted-text-style-transfer', 'prompted-classification']:
                 self._reward_function = \
-                    reward_name_to_cls_map[reward_name](dataset=tst_dataset,
-                                                        dataset_seed=tst_data_seed,
-                                                        # LM_type=LM_type,
-                                                        # experiment=experiment,
-                                                        # experiment_seed=experiment_seed,
-                                                        kshot=kshot,
-                                                        # task_name=task_name
-                                                        )
+                    reward_name_to_cls_map[reward_name](# prompt reward parameters
+                                                        prompt_task_lm=prompt_task_lm,
+                                                        prompt_dataset=prompt_dataset,
+                                                        prompt_dataset_seed=prompt_dataset_seed,
+                                                        prompt_dataset_basepath=prompt_dataset_basepath,
+                                                        # text style transfer arguments
+                                                        tst_clf_basepath=tst_clf_basepath,
+                                                        tst_n_repeats=tst_n_repeats,
+                                                        tst_num_samples=tst_num_samples, # Num of samples from which to take the output
+                                                        tst_num_bootstraps=tst_num_bootstraps, # Num of bootstraps to reduce reward randomness
+                                                        # classification arguments
+                                                        clf_kshot=clf_kshot,
+                                                        clf_num_classes=clf_num_classes)
             else:
                 self._reward_function = reward_name_to_cls_map[reward_name]()
             

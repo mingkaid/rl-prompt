@@ -1,7 +1,9 @@
 import os
 
+base_path = os.path.abspath(os.path.join('.', os.pardir, os.pardir, os.pardir))
+assert base_path.endswith('rl-prompt')
+base_path = os.path.join(base_path, 'data/prompt-gpt2-vocab')
 
-base_path = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-words"
 max_source_length = 512
 max_decoding_length = 5
 
