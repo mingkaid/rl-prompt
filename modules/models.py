@@ -14,6 +14,7 @@
 
 import numpy as np
 import pandas as pd
+import os
 import json
 import torch
 import torch.nn as nn
@@ -31,6 +32,8 @@ from sql.types import (
     LongTensor)
 
 from transformers import pipeline, AutoTokenizer
+import random
+import itertools
 
 def _build_gpt2_vocab_mlp(out_dim, in_dim=768, device=0): 
     
@@ -39,12 +42,11 @@ def _build_gpt2_vocab_mlp(out_dim, in_dim=768, device=0):
     W2 = nn.Linear(2048, out_dim)
     return nn.Sequential(W1, A1, W2)
 
-def _build_self_vocab_mlp(out_dim, in_dim=768, device=0): 
-    W1 = nn.Linear(in_dim, 256)
-    A1 = nn.ReLU()
-    O = nn.Linear(256, out_dim)
-    return nn.Sequential(W1, A1, O)
-
+# def _build_self_vocab_mlp(out_dim, in_dim=768, device=0): 
+#     W1 = nn.Linear(in_dim, 256)
+#     A1 = nn.ReLU()
+#     O = nn.Linear(256, out_dim)
+#     return nn.Sequential(W1, A1, O)
 
 def _top_k_logits(logits: torch.Tensor, k: int) -> torch.Tensor:
     r"""Adapted from
@@ -78,13 +80,13 @@ def _top_p_logits(logits: torch.Tensor, p: float) -> torch.Tensor:
         logits[idx, batch_indices] = float("-inf")
     return logits
 
-import itertools
 class GPT2ConditionedMLP(nn.Module): 
     input_template = 'Sentence 1: "{sentence_1}"'
-    output_template = 'Sentence 2: "'
-    sentence_1 = 'thank you for a five star service .'
-    sentence_1 = 'classification'
+    # output_template = 'Sentence 2: "'
+    # sentence_1 = 'thank you for a five star service .'
+    # sentence_1 = 'classification'
 #     sentence_1 = 'Prompt: '
+    tmp_input = 'classification'
 
     def __init__(self, 
                  train_data: tx.data.PairedTextData,
@@ -92,15 +94,22 @@ class GPT2ConditionedMLP(nn.Module):
                  max_decoding_length: int,
                  config_name: str,
                  # TST arguments
-                 tst_dataset: Optional[str] = None,
-                 tst_data_seed: Optional[int] = None,
+                #  tst_dataset: Optional[str] = None,
+                #  tst_data_seed: Optional[int] = None,
                  # Classification arguments
-                 LM_type: str = 'gpt2',
-                 experiment: str = 'Test',
-                 experiment_seed: int = 0,
-                 kshot: int = -1,
-                 task_name: str = 'SST-2',
-                 device=0,
+                #  LM_type: str = 'gpt2',
+                #  experiment: str = 'Test',
+                #  experiment_seed: int = 0,
+                #  kshot: int = -1,
+                #  task_name: str = 'SST-2',
+                 policy_lm: str = 'distilgpt2',
+                 input_specific: bool = True,
+                 logit_bias: float = 0,
+                 dataset: Optional[str] = None,
+                 dataset_seed: Optional[int] = None,
+                 dataset_basepath: str = '/data/mingkai/prompt-generation/dirty-code/rl-prompt',
+                 n_repeats: int = 4,
+                 fluent_prompt: bool = False,
                  **kwargs) -> None: 
         super().__init__()
         
@@ -108,7 +117,7 @@ class GPT2ConditionedMLP(nn.Module):
             raise ValueError
             
         # self.config_model = config_model
-        self.device = device
+        self.device = 0 # TODO
 
         self.max_source_length = max_source_length
         self.max_decoding_length = max_decoding_length
@@ -121,11 +130,14 @@ class GPT2ConditionedMLP(nn.Module):
         self.bos_token_id = train_data.target_vocab.bos_token_id
         self.eos_token_id = train_data.target_vocab.eos_token_id
         
-        self.dataset = tst_dataset
-        self.seed = tst_data_seed
-        self.n_repeats = 4
+        self.dataset = dataset
+        self.seed = dataset_seed
+        self.basepath = dataset_basepath
+        # self.dataset = tst_dataset
+        # self.seed = tst_data_seed
+        self.n_repeats = n_repeats
         
-        model = 'distilgpt2'
+        model = policy_lm
         self.tokenizer = AutoTokenizer.from_pretrained(model, pad_token='<|endoftext|>')
         self.generator = pipeline("text-generation",
                                   tokenizer=self.tokenizer,
@@ -141,16 +153,16 @@ class GPT2ConditionedMLP(nn.Module):
         self.mlp = _build_gpt2_vocab_mlp(model_dim, in_dim=model_dim).to(self.device)
         self._mlp_forward = self._gpt2_vocab_mlp_forward
         self.valid_token_ids = None
-
-        
-        self.temp_input = 'this is good.'
-        self._tst_inputs = self._load_tst_inputs()
-        self._tst_inputs_idx = {('train', 'LABEL_0'): 0, 
-                                ('train', 'LABEL_1'): 0,
-                                ('infer', 'LABEL_0'): 0,
-                                ('infer', 'LABEL_1'): 0}
-        self.fluent = False
-        self.logit_bias = -10
+        # self.temp_input = 'this is good.'
+        self.input_specific = input_specific
+        if self.input_specific:
+            self._tst_inputs = self._load_tst_inputs()
+            self._tst_inputs_idx = {('train', 'LABEL_0'): 0, 
+                                    ('train', 'LABEL_1'): 0,
+                                    ('infer', 'LABEL_0'): 0,
+                                    ('infer', 'LABEL_1'): 0}
+        self.fluent = fluent_prompt
+        self.logit_bias = logit_bias
         # self.logit_bias = nn.Parameter(torch.tensor(-10.))
         def init_weights(m):
             if isinstance(m, nn.Linear):
@@ -181,25 +193,33 @@ class GPT2ConditionedMLP(nn.Module):
         # print(modified_logits.shape)
         return modified_logits
     
-    def _self_vocab_mlp_forward(self, state): 
-        logits = self.mlp(state)
-        zeros = torch.ones_like(logits)[:, :4] * float('-inf')
-        # print(zeros)
-        modified_logits = torch.cat([zeros, logits], dim=-1)
-        # print(modified_logits.shape)
-        return modified_logits
+    # def _self_vocab_mlp_forward(self, state): 
+    #     logits = self.mlp(state)
+    #     zeros = torch.ones_like(logits)[:, :4] * float('-inf')
+    #     # print(zeros)
+    #     modified_logits = torch.cat([zeros, logits], dim=-1)
+    #     # print(modified_logits.shape)
+    #     return modified_logits
     
     def _load_tst_inputs(self) -> Dict[Tuple[Any], List[str]]: 
         tst_inputs = {}
         # tokenizer = self._generator.tokenizer
-        if self.dataset == 'yelp' or self.dataset == "SST-2":
-            filepath_train_0 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.train.0.preprocess"
-            filepath_train_1 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.train.1.preprocess"
-            filepath_dev_0 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.dev.0.preprocess"
-            filepath_dev_1 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.dev.1.preprocess"
+        assert self.dataset in ['yelp', 'shakespeare'], self.dataset
+        if self.dataset == 'yelp':
+            filepath_train_0 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.train.0.preprocess")
+            filepath_train_1 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.train.1.preprocess")
+            filepath_dev_0 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.dev.0.preprocess")
+            filepath_dev_1 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.dev.1.preprocess")
+            filepath_test_ref_0 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.test_ref.0.preprocess")
+            filepath_test_ref_1 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.test_ref.1.preprocess")
 
-            filepath_test_ref_0 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.test_ref.0.preprocess"
-            filepath_test_ref_1 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.test_ref.1.preprocess"
+            # filepath_train_0 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.train.0.preprocess"
+            # filepath_train_1 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.train.1.preprocess"
+            # filepath_dev_0 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.dev.0.preprocess"
+            # filepath_dev_1 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.dev.1.preprocess"
+
+            # filepath_test_ref_0 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.test_ref.0.preprocess"
+            # filepath_test_ref_1 = "/data/mingkai/prompt-generation/dirty-code/rl-prompt/data/yelp-gpt2-control-only/raw-prep/sentiment.test_ref.1.preprocess"
             
             with open(filepath_train_0) as f: 
                 sentences_train_0 = [line.strip() for line in f]
@@ -219,12 +239,15 @@ class GPT2ConditionedMLP(nn.Module):
                 
         elif self.dataset in ['shakespeare']:
             seed_dic = {0:f'100-100', 1:f'100-13', 2:f'100-21', 3:f'100-42', 4:f'100-87'}
-            filepath_train = ("/data/mingkai/prompt-generation/dirty-code/rl-prompt/clf-tasks/100-shot/"
-                              f"{self.dataset}/{seed_dic[self.seed]}/train.tsv")
-            filepath_dev = ("/data/mingkai/prompt-generation/dirty-code/rl-prompt/clf-tasks/100-shot/"
-                              f"{self.dataset}/{seed_dic[self.seed]}/dev.tsv")
-            filepath_test = ("/data/mingkai/prompt-generation/dirty-code/rl-prompt/clf-tasks/100-shot/"
-                              f"{self.dataset}/{seed_dic[self.seed]}/test.tsv")
+            filepath_train = os.path.join(self.basepath, f"clf-tasks/100-shot/{self.dataset}/{seed_dic[self.seed]}/train.tsv")
+            filepath_dev = os.path.join(self.basepath, f"clf-tasks/100-shot/{self.dataset}/{seed_dic[self.seed]}/dev.tsv")
+            filepath_test = os.path.join(self.basepath, f"clf-tasks/100-shot/{self.dataset}/{seed_dic[self.seed]}/test.tsv")
+            # filepath_train = ("/data/mingkai/prompt-generation/dirty-code/rl-prompt/clf-tasks/100-shot/"
+            #                   f"{self.dataset}/{seed_dic[self.seed]}/train.tsv")
+            # filepath_dev = ("/data/mingkai/prompt-generation/dirty-code/rl-prompt/clf-tasks/100-shot/"
+            #                   f"{self.dataset}/{seed_dic[self.seed]}/dev.tsv")
+            # filepath_test = ("/data/mingkai/prompt-generation/dirty-code/rl-prompt/clf-tasks/100-shot/"
+            #                   f"{self.dataset}/{seed_dic[self.seed]}/test.tsv")
             
             df_train = pd.read_csv(filepath_train, sep='\t')
             df_dev = pd.read_csv(filepath_dev, sep='\t')
@@ -241,7 +264,7 @@ class GPT2ConditionedMLP(nn.Module):
             test_size = 100
             
             
-            if self.dataset == 'shakespeare' and self.seed in [1, 2, 3, 4]: 
+            if self.dataset == 'shakespeare' and self.seed in [0, 1, 2, 3, 4]: 
                 new_train_0 = [sent for sent in sentences_train_0 if len(self.tokenizer(sent)['input_ids']) < 30]
                 new_train_1 = [sent for sent in sentences_train_1 if len(self.tokenizer(sent)['input_ids']) < 30]
                 new_dev_0 = [sent for sent in sentences_dev_0 if len(self.tokenizer(sent)['input_ids']) < 30]
@@ -337,8 +360,7 @@ class GPT2ConditionedMLP(nn.Module):
     -> Tuple[tx.modules.TransformerDecoderOutput, LongTensor]:
         if top_k is not None and top_p is not None:
             raise ValueError
-            
-            
+
         state = last_token_hidden_state
         prompt_tokens, sample_ids, sample_logits = [], [], []
         for i in range(self.max_decoding_length): 
@@ -445,38 +467,38 @@ class GPT2ConditionedMLP(nn.Module):
             }
     
     def _get_inputs(self, mode: str, target_labels: List[str]): 
-        import random
-        
         inputs = []
         indices = []
         
         # nunique_inputs = len(set(self.dataset_inputs))
         for i, label in enumerate(target_labels): 
-            idx = self._tst_inputs_idx[(mode, label)]
-            data = self._tst_inputs[(mode, label)]
-                        
-            if mode == 'train': 
-                # inputs.append(data[idx])
-                inputs.append(self.sentence_1)
-                indices.append(int(idx // self.n_repeats))
+            if self.input_specific:
+                idx = self._tst_inputs_idx[(mode, label)]
+                data = self._tst_inputs[(mode, label)]
+                            
+                if mode == 'train': 
+                    inputs.append(data[idx])
+                    # inputs.append(self.sentence_1)
+                    indices.append(int(idx // self.n_repeats))
+                else: 
+                    inputs.append(data[idx])
+                    # inputs.append(self.sentence_1)
+                    indices.append(int(idx))
+                    
+                idx += 1
+                idx %= len(data)
+                
+                if idx == 0: 
+                    data_idx = np.arange(len(data) // self.n_repeats) * self.n_repeats
+                    random.Random(0).shuffle(data_idx)
+                    self._tst_inputs[(mode, label)] = \
+                        (list(itertools.chain(*[[data[i] for _ in range(self.n_repeats)]
+                                                for i in data_idx])))
+                    
+                self._tst_inputs_idx[(mode, label)] = idx
             else: 
-                # inputs.append(data[idx])
-                inputs.append(self.sentence_1)
-                indices.append(int(idx))
-                
-            idx += 1
-            idx %= len(data)
-            
-            if idx == 0: 
-                data_idx = np.arange(len(data) // self.n_repeats) * self.n_repeats
-                random.Random(0).shuffle(data_idx)
-                self._tst_inputs[(mode, label)] = \
-                    (list(itertools.chain(*[[data[i] for _ in range(self.n_repeats)]
-                                            for i in data_idx])))
-                
-            
-            
-            self._tst_inputs_idx[(mode, label)] = idx
+                inputs.append(self.tmp_input)
+                indices.append(int(i))
         
         return indices, inputs
     
@@ -493,6 +515,7 @@ class GPT2ConditionedMLP(nn.Module):
         else: 
             input_mode = 'train'
         indices, input_texts = self._get_inputs(input_mode, target_labels)
+        print(input_texts)
         
         token_encoding = (self.generator
                           .tokenizer(input_texts, 

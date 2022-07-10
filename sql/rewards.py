@@ -502,16 +502,10 @@ class PromptedClassificationReward(object):
             dataset_basepath: str = '/data/mingkai/prompt-generation/dirty-code/rl-prompt',
             kshot: int = 16,
             num_classes: int = 2,
-            # experiment: str = 'FSL',
-            # task_name: str = 'SST-2',
             **kwargs
     ) -> None:
 
         self.device = device
-        # assert experiment in ['Test', 'FSL', 'ImbFSL', 'Full'] # train using Yelp dataset
-        # self.experiment = experiment
-        
-        # self._task_name = dataset
         self.dataset = dataset
         self.dataset_seed = dataset_seed
         self.dataset_basepath = dataset_basepath
@@ -526,30 +520,8 @@ class PromptedClassificationReward(object):
             self._tokenizer = AutoTokenizer.from_pretrained(self.task_lm)
             self._generator = AutoModelForMaskedLM.from_pretrained(self.task_lm).to(self.device)
 
-        # if 'gpt' in self.LM_type.lower(): # CLM
-        #     self._tokenizer = AutoTokenizer.from_pretrained(self.LM_type.lower(), pad_token='<|endoftext|>')
-        #     self._generator = GPT2LMHeadModel.from_pretrained(self.LM_type.lower()).to(self.device)
-        #     self._generator.config.pad_token_id = self._tokenizer.pad_token_id
-        # elif 'bert' in self.LM_type.lower(): # MLM
-        #     if 'base' in self.LM_type.lower():
-        #         self.LM_type = self.LM_type[:-4]+'-'+'base'
-        #     elif 'large' in self.LM_type.lower():
-        #         self.LM_type = self.LM_type[:-5]+'-'+'large'
-
-        #     self._tokenizer = AutoTokenizer.from_pretrained(self.LM_type.lower())
-        #     self._generator = AutoModelForMaskedLM.from_pretrained(self.LM_type.lower()).to(self.device)
-        # elif 't5' in self.LM_type.lower(): # T5-adapted-LM
-        #     self._tokenizer = AutoTokenizer.from_pretrained("google/"+self.LM_type.lower())
-        #     self._generator = AutoModelForSeq2SeqLM.from_pretrained("google/"+self.LM_type.lower()).to(self.device)
-        # elif 'T0' in self.LM_type:
-        #     self._tokenizer = AutoTokenizer.from_pretrained("bigscience/"+self.LM_type)
-        #     self._generator = AutoModelForSeq2SeqLM.from_pretrained("bigscience/"+self.LM_type).to(self.device)
-
-        # self._max_length = max_length
-        # self._tst_templates = self.load_tst_templates()
         self._templates = self.load_templates()
         self._inputs = self._load_inputs()
-        # self._tst_inputs = self._load_tst_inputs(experiment, experiment_seed, kshot, task_name=task_name)
         task_name = self.dataset
         if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
             self._inputs_idx = {('train', 'LABEL_0'): 0, 
@@ -579,14 +551,7 @@ class PromptedClassificationReward(object):
                                 ('infer', 'LABEL_4'): 0,
                                 }
 
-
-        # self._inputs_sep_idx = {'train': 0,
-        #                             'infer': 0}
-        ### Modification starts ###
         self._counter = 0
-    
-        self.train_input_pos = "this is a visually stunning rumination on love , memory , history and the war between art and commerce ."#"He is a good person ."#"is a delightful hostess and makes you feel welcome ."#"i was sadly mistaken ."#"He is a good person."
-        self.train_input_neg = "a fan film that for the uninitiated plays better on video with the sound turned down ."#"also , i wrote to the restaurant and received no response ."#"excellent food ."#"this service is not that good."
         if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
             self.pos_verbalizer_candidate = ['\u0120positive', '\u0120great'   ,'\u0120good', '\u0120wonderful', '\u0120delicious', '\u0120dog', '\u0120cat', '\u0120terrible', '\u0120yes']
             self.neg_verbalizer_candidate = ['\u0120negative', '\u0120terrible','\u0120bad' , '\u0120bad', '\u0120bad', '\u0120cat', '\u0120dog', '\u0120great', '\u0120no']
@@ -620,20 +585,6 @@ class PromptedClassificationReward(object):
             self.id_4 = self._tokenizer.convert_tokens_to_ids(self.verbalizer_4)
             self.id_5 = self._tokenizer.convert_tokens_to_ids(self.verbalizer_5)
 
-    # def load_tst_templates(self) -> List[str]:
-    #     # if 'bert' not in self.LM_type.lower():
-    #     print(self._task_name)
-    #     if 'bert' not in self.task_lm:
-    #         temp_tst_template = "{sentence_1} {prompt}" # TODO
-    #     else:
-    #         if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr', 'sst-5', 'yelp-5']:
-    #             temp_tst_template = "{sentence_1} {prompt} <mask> ."            
-    #         elif self._task_name in ['agnews']: # TODO
-    #             temp_tst_template = "<mask> {prompt} {sentence_1}"
-            
-
-    #     return [temp_tst_template]
-
     def load_templates(self) -> List[str]:
         self._task_name = self.dataset
         if 'bert' not in self.task_lm:
@@ -647,112 +598,21 @@ class PromptedClassificationReward(object):
 
         return [temp_template]
     
-    def _load_tst_inputs(self, experiment: str, experiment_seed: int, kshot: int, task_name: str) -> Dict[Tuple[Any], List[str]]: 
-        tst_inputs = {}
-        
-        idx = 43 # valid set
-        import random
-        print(experiment)
-        if experiment == 'Test':
-            tst_inputs[('train', 'LABEL_0')] = sentences_train_1[idx:]
-            tst_inputs[('train', 'LABEL_1')] = sentences_train_0[idx:]
-            tst_inputs[('infer', 'LABEL_0')] = sentences_train_1[idx:(idx+2)] # same with batch size?
-            tst_inputs[('infer', 'LABEL_1')] = sentences_train_0[idx:(idx+2)]
-            print(tst_inputs[('infer', 'LABEL_0')])
-            print(tst_inputs[('infer', 'LABEL_1')])
-        elif experiment == 'FSL':
-            assert experiment_seed in [0, 1, 2, 3, 4]
-            assert kshot in [1,16,24,32,64]
-            # random.Random(experiment_seed).shuffle(sentences_train_1)
-            # random.Random(experiment_seed).shuffle(sentences_train_0)
-            if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
-                train_pos_dict, train_neg_dict, dev_pos_dict, dev_neg_dict = self._load_few_shot_examples(task_name=task_name, shot=kshot, random_seed=experiment_seed)
-            elif task_name == 'agnews':
-                train_world_dict, train_sports_dict, train_business_dict, train_technology_dict, dev_world_dict, dev_sports_dict, dev_business_dict, dev_technology_dict = self._load_few_shot_examples(task_name=task_name, shot=kshot, random_seed=experiment_seed)
-            elif task_name in ['sst-5', 'yelp-5']:
-                train_1_dict, train_2_dict, train_3_dict, train_4_dict, train_5_dict, dev_1_dict, dev_2_dict, dev_3_dict, dev_4_dict, dev_5_dict = self._load_few_shot_examples(task_name=task_name, shot=kshot, random_seed=experiment_seed)
-
-            if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
-                tst_inputs[('train', 'LABEL_0')] = list(train_pos_dict.keys())#sentences_train_1[:kshot]
-                tst_inputs[('train', 'LABEL_1')] = list(train_neg_dict.keys())#sentences_train_0[:kshot]
-                tst_inputs[('infer', 'LABEL_0')] = list(dev_pos_dict.keys())#sentences_train_1[-kshot:]
-                tst_inputs[('infer', 'LABEL_1')] = list(dev_neg_dict.keys())#sentences_train_0[-kshot:]
-                tst_inputs['train'] = [(text,1) for text in list(train_pos_dict.keys())] + [(text, 0) for text in list(train_neg_dict.keys())]
-                tst_inputs['infer'] = [(text,1) for text in list(dev_pos_dict.keys())] + [(text, 0) for text in list(dev_neg_dict.keys())]
-                random.Random(0).shuffle(tst_inputs['train'])
-                random.Random(0).shuffle(tst_inputs['infer'])
-            elif task_name == 'agnews': # news topic classification
-                tst_inputs[('train', 'LABEL_0')] = list(train_world_dict.keys())#sentences_train_1[:kshot]
-                tst_inputs[('train', 'LABEL_1')] = list(train_sports_dict.keys())#sentences_train_0[:kshot]
-                tst_inputs[('train', 'LABEL_2')] = list(train_business_dict.keys())#sentences_train_1[:kshot]
-                tst_inputs[('train', 'LABEL_3')] = list(train_technology_dict.keys())#sentences_train_0[:kshot]
-                
-                tst_inputs[('infer', 'LABEL_0')] = list(dev_world_dict.keys())#sentences_train_1[:kshot]
-                tst_inputs[('infer', 'LABEL_1')] = list(dev_sports_dict.keys())#sentences_train_0[:kshot]
-                tst_inputs[('infer', 'LABEL_2')] = list(dev_business_dict.keys())#sentences_train_1[:kshot]
-                tst_inputs[('infer', 'LABEL_3')] = list(dev_technology_dict.keys())
-
-                tst_inputs['train'] = [(text, 0) for text in list(train_world_dict.keys())] + [(text, 1) for text in list(train_sports_dict.keys())] + [(text, 2) for text in list(train_business_dict.keys())] + [(text, 3) for text in list(train_technology_dict.keys())]
-                tst_inputs['infer'] = [(text, 0) for text in list(dev_world_dict.keys())] + [(text, 1) for text in list(dev_sports_dict.keys())] + [(text, 2) for text in list(dev_business_dict.keys())] + [(text, 3) for text in list(dev_technology_dict.keys())]
-                random.Random(0).shuffle(tst_inputs['train'])
-                random.Random(0).shuffle(tst_inputs['infer'])
-            elif task_name in ['sst-5', 'yelp-5']:
-                tst_inputs[('infer', 'LABEL_0')] = list(dev_1_dict.keys())#sentences_train_1[:kshot]
-                tst_inputs[('infer', 'LABEL_1')] = list(dev_2_dict.keys())#sentences_train_0[:kshot]
-                tst_inputs[('infer', 'LABEL_2')] = list(dev_3_dict.keys())#sentences_train_1[:kshot]
-                tst_inputs[('infer', 'LABEL_3')] = list(dev_4_dict.keys())
-                tst_inputs[('infer', 'LABEL_4')] = list(dev_5_dict.keys())
-
-                tst_inputs[('train', 'LABEL_0')] = list(train_1_dict.keys())#sentences_train_1[:kshot]
-                tst_inputs[('train', 'LABEL_1')] = list(train_2_dict.keys())#sentences_train_0[:kshot]
-                tst_inputs[('train', 'LABEL_2')] = list(train_3_dict.keys())#sentences_train_1[:kshot]
-                tst_inputs[('train', 'LABEL_3')] = list(train_4_dict.keys())
-                tst_inputs[('train', 'LABEL_4')] = list(train_5_dict.keys())
-
-                tst_inputs['train'] = [(text, 0) for text in list(train_1_dict.keys())] + [(text, 1) for text in list(train_2_dict.keys())] + [(text, 2) for text in list(train_3_dict.keys())] + [(text, 3) for text in list(train_4_dict.keys())] + [(text, 4) for text in list(train_5_dict.keys())]
-                tst_inputs['infer'] = [(text, 0) for text in list(dev_1_dict.keys())] + [(text, 1) for text in list(dev_2_dict.keys())] + [(text, 2) for text in list(dev_3_dict.keys())] + [(text, 3) for text in list(dev_4_dict.keys())] + [(text, 4) for text in list(dev_5_dict.keys())]
-                random.Random(0).shuffle(tst_inputs['train'])
-                random.Random(0).shuffle(tst_inputs['infer'])
-        elif experiment == 'ImbFSL': # kshot x 2->training examples
-            tst_inputs['train'] = [(sentence, 'LABEL_0') for sentence in sentences_train_1] + [(sentence, 'LABEL_1') for sentence in sentences_train_0]
-            # for imblanced FSL, we have to break current rules, ratio
-            random.Random(experiment_seed).shuffle(tst_inputs['train'])
-            tst_inputs['FSL_train'] = tst_inputs['train'][:kshot*2]
-        elif experiment == 'Full':
-            random.Random(experiment_seed).shuffle(sentences_train_1)
-            random.Random(experiment_seed).shuffle(sentences_train_0)
-            tst_inputs[('train', 'LABEL_0')] = sentences_train_1
-            tst_inputs[('train', 'LABEL_1')] = sentences_train_0
-            tst_inputs[('infer', 'LABEL_0')] = sentences_train_1
-            tst_inputs[('infer', 'LABEL_1')] = sentences_train_0
-            
-        
-        return tst_inputs
-
     def _load_inputs(self) -> Dict[Tuple[Any], List[str]]: 
         inputs = {}
         
-        # assert experiment_seed in [0, 1, 2, 3, 4]
-        # assert kshot in [1,16,24,32,64]
         assert self.dataset_seed in [0, 1, 2, 3, 4]
         assert self.kshot in [16]
-        # random.Random(experiment_seed).shuffle(sentences_train_1)
-        # random.Random(experiment_seed).shuffle(sentences_train_0)
-        # if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
         task_name = self.dataset
         if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
-            # train_pos_dict, train_neg_dict, dev_pos_dict, dev_neg_dict = self._load_few_shot_examples(task_name=task_name, shot=kshot, random_seed=experiment_seed)
             train_pos_dict, train_neg_dict, dev_pos_dict, dev_neg_dict = self._load_few_shot_examples()
         elif task_name == 'agnews':
             (train_world_dict, train_sports_dict, train_business_dict, train_technology_dict, 
             dev_world_dict, dev_sports_dict, dev_business_dict, dev_technology_dict) = self._load_few_shot_examples()
-            # train_world_dict, train_sports_dict, train_business_dict, train_technology_dict, dev_world_dict, dev_sports_dict, dev_business_dict, dev_technology_dict = self._load_few_shot_examples(task_name=task_name, shot=kshot, random_seed=experiment_seed)
         elif task_name in ['sst-5', 'yelp-5']:
             (train_1_dict, train_2_dict, train_3_dict, train_4_dict, train_5_dict, 
             dev_1_dict, dev_2_dict, dev_3_dict, dev_4_dict, dev_5_dict) = self._load_few_shot_examples()
-            
-            # train_1_dict, train_2_dict, train_3_dict, train_4_dict, train_5_dict, dev_1_dict, dev_2_dict, dev_3_dict, dev_4_dict, dev_5_dict = self._load_few_shot_examples(task_name=task_name, shot=kshot, random_seed=experiment_seed)
-
+        
         if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
             inputs[('train', 'LABEL_0')] = list(train_pos_dict.keys())#sentences_train_1[:kshot]
             inputs[('train', 'LABEL_1')] = list(train_neg_dict.keys())#sentences_train_0[:kshot]
@@ -798,9 +658,7 @@ class PromptedClassificationReward(object):
         
         return inputs
 
-    # def _load_few_shot_examples(self, task_name: str = 'SST-2', shot: int = 16, random_seed: int = 0):
     def _load_few_shot_examples(self):
-        # base_path = '/data/mingkai/prompt-generation/dirty-code/rl-prompt/tasks/'+str(shot)+'-shot/'
         base_path = os.path.join(self.dataset_basepath, f'tasks/{str(self.kshot)}-shot/')
         seed_dic = {0:'16-100', 1:'16-13', 2:'16-21', 3:'16-42', 4:'16-87'}
         
@@ -918,54 +776,17 @@ class PromptedClassificationReward(object):
         elif task_name in ['sst-5', 'yelp-5']:
             return train_1_dict, train_2_dict, train_3_dict, train_4_dict, train_5_dict, dev_1_dict, dev_2_dict, dev_3_dict, dev_4_dict, dev_5_dict
 
-
     def _convert_tokens_to_string(self, tokens: List[str]) -> List[str]: 
         return [self._tokenizer.convert_tokens_to_string(s.split())
                 for s in tokens]
 
-    # def _format_prompts(self, source_strings: List[str], prompt_strings: List[str], PAIR: bool) -> List[str]:
     def _format_prompts(self, source_strings: List[str], prompt_strings: List[str]) -> List[str]:
         template = self._templates[0]
-        # if PAIR == True:
-            # if self._task_name not in ['RTE', 'MRPC', 'SNLI']:
         return [
             template.format(sentence_1=s, prompt=p) for s_1, p
             in zip(source_strings, prompt_strings) for s in s_1
         ], 0
-            # else:
-            #     return [
-            #         template.format(sentence_1=s[0], sentence_2=s[1], prompt=p) for s_1, p
-            #         in zip(source_strings, prompt_strings) for s in s_1
-            #     ], [len(self._tokenizer.encode(s[0]))+1 for s_1 in source_strings for s in s_1]
-        # else:
-        #     return [
-        #         template.format(sentence_1=s_1[0], prompt=p) for s_1, p
-        #         in zip(source_strings, prompt_strings)
-        #     ], 0
 
-
-    
-    # def _get_inputs(self, mode: str, target_labels: List[str]): 
-    
-    #     inputs = []
-    #     for i, label in enumerate(target_labels): # batch_size 
-    #         idx = self._tst_inputs_idx[(mode, label)]
-    #         p_data = self._tst_inputs[(mode, 'LABEL_0')]
-    #         n_data = self._tst_inputs[(mode, 'LABEL_1')]
-
-    #         if mode == 'train':
-    #             inputs.append([self.train_input_pos, self.train_input_neg])
-    #         elif mode == 'infer':
-    #             inputs.append([p_data[idx], n_data[idx]])
-    #             # inputs.append([self.train_input_pos, self.train_input_neg])
-                
-    #         idx += 1
-    #         idx %= len(p_data)
-    #         self._tst_inputs_idx[(mode, label)] = idx
-        
-    #     return inputs
-
-    # def _get_few_shot_inputs(self, mode: str, target_labels: List[str], kshot: int, PAIR: bool): 
     def _get_few_shot_inputs(self, mode: str, target_labels: List[str], kshot: int): 
         # per batch
         inputs = []
@@ -985,14 +806,8 @@ class PromptedClassificationReward(object):
             data_4 = self._inputs[(mode, 'LABEL_3')]
             data_5 = self._inputs[(mode, 'LABEL_4')]
 
-        # if PAIR == False:
-        #     w_data = self._inputs[mode]
         for i, label in enumerate(target_labels): # current input per batch
-            # idx = self._inputs_idx[(mode, label)] if PAIR==True else self._inputs_sep_idx[mode]
-            idx = self._inputs_idx[(mode, label)] # if PAIR==True else self._inputs_sep_idx[mode]
-            #p_data = self._inputs[(mode, 'LABEL_0')]
-            #n_data = self._inputs[(mode, 'LABEL_1')]
-            # if PAIR == True:
+            idx = self._inputs_idx[(mode, label)] 
             if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
                 if mode == 'train':
                     inputs.append([p_data[idx], n_data[idx]])
@@ -1005,25 +820,16 @@ class PromptedClassificationReward(object):
                     inputs.append([world_data[idx], sports_data[idx], business_data[idx], technology_data[idx]])
             elif self._task_name in ['sst-5', 'yelp-5']:
                 inputs.append([data_1[idx], data_2[idx], data_3[idx], data_4[idx], data_5[idx]])
-            # else:
-            #     if mode == 'train':
-            #         inputs.append(w_data[idx]) # tuple
-            #     elif mode == 'infer':
-            #         inputs.append(w_data[idx])
                 
             idx += 1
-            # if PAIR == True:
             if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
                 idx %= len(p_data)
             elif self._task_name == 'agnews':
                 idx %= len(world_data)
             elif self._task_name in ['sst-5', 'yelp-5']:
                 idx %= len(data_1)
-            # else:
-            #     idx %= len(w_data)
 
             if idx == 0:
-                # if PAIR == True:
                 random.Random(0).shuffle(self._inputs[(mode, 'LABEL_0')])
                 random.Random(0).shuffle(self._inputs[(mode, 'LABEL_1')])
                 if self._task_name == 'agnews':
@@ -1033,53 +839,15 @@ class PromptedClassificationReward(object):
                     random.Random(0).shuffle(self._inputs[(mode, 'LABEL_2')])
                     random.Random(0).shuffle(self._inputs[(mode, 'LABEL_3')])
                     random.Random(0).shuffle(self._inputs[(mode, 'LABEL_4')])
-                # else:
-                #     random.Random(0).shuffle(self._inputs[mode])
 
-            # if PAIR == True:
             self._inputs_idx[(mode, label)] = idx
-            # else:
-            #     self._inputs_sep_idx[mode] = idx
         
         return inputs
-
-
-    # def _get_full_inputs(self, mode: str, target_labels: List[str], step: int): 
-    
-    #     inputs = []
-    #     if step == 0:
-    #         self._tst_inputs[(mode, 'LABEL_0')] = random.shuffle(self._tst_inputs[(mode, 'LABEL_0')])
-    #         self._tst_inputs[(mode, 'LABEL_1')] = random.shuffle(self._tst_inputs[(mode, 'LABEL_1')])
-
-    #     p_data = self._tst_inputs[(mode, 'LABEL_0')]
-    #     n_data = self._tst_inputs[(mode, 'LABEL_1')]
-
-    #     for i, label in enumerate(target_labels): 
-    #         idx = self._tst_inputs_idx[(mode, label)]
-    #         p_data = self._tst_inputs[(mode, 'LABEL_0')]
-    #         n_data = self._tst_inputs[(mode, 'LABEL_1')]
-
-    #         if mode == 'train':
-    #             inputs.append([p_data[idx], n_data[idx]])
-    #         elif mode == 'infer':
-    #             inputs.append([p_data[idx], n_data[idx]])
-    #             # inputs.append([self.train_input_pos, self.train_input_neg])
-                
-    #         idx += 1
-    #         idx %= len(p_data)
-    #         self._tst_inputs_idx[(mode, label)] = idx
-        
-    #     return inputs
-
-
 
     def _get_probs(self, texts, prompt_length=0, locations = 0):
         # for MLM, add mask token
         encoded_input  = self._tokenizer(texts, padding='longest', truncation=True, return_tensors="pt", add_special_tokens=True)
-        #if self._task_name in ['MRPC','RTE']:
-        #    encoded_input  = self._tokenizer(texts, padding='longest', truncation=True, return_tensors="pt", add_special_tokens=False)
         batch_size = len(texts)
-        #print(batch_size)
         self._task_name = self.dataset
         if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr', 'sst-5', 'yelp-5']:
             seq_len = torch.ne(encoded_input.input_ids, self._tokenizer.pad_token_id).sum(-1) - 1
@@ -1094,7 +862,6 @@ class PromptedClassificationReward(object):
             '''
         with torch.no_grad():
             if 'bert' in self.task_lm: # MLM, <s>, <\s>
-                  
                 logits = self._generator(
                     input_ids=encoded_input.input_ids.to(device), 
                     attention_mask=encoded_input.attention_mask.to(device)
@@ -1111,26 +878,15 @@ class PromptedClassificationReward(object):
                     ).logits 
             logits = logits[range(batch_size), seq_len] 
 
-        #probs  = torch.softmax(logits, -1)
-        return logits #probs
+        return logits 
     
     def forward(self, target_labels: List[str], prompts: List[str], to_tensor: bool, mode: str) -> Tuple[Union[List[float], FloatTensor], Dict[str, Any]]:
         if mode not in ["train", "infer"]:
             raise ValueError
-        # PAIR = True#False
-        # loading the dataset
-        # if self.experiment == "Test":
-        #     source_strings = self._get_inputs(mode, target_labels)
-        # elif self.experiment == "FSL":
-        #     source_strings = self._get_few_shot_inputs(mode, target_labels, self.kshot, PAIR)
-        # else:
-        #     source_strings = self._get_full_inputs(mode, target_labels)
-        # source_strings = self._get_few_shot_inputs(mode, target_labels, self.kshot, PAIR)
         source_strings = self._get_few_shot_inputs(mode, target_labels, self.kshot)
         # adding the prompt
         prompt_strings = self._convert_tokens_to_string(prompts)
         prompt_length = len(prompts[0].split())
-        # formatted_prompts, locations = self._format_prompts(source_strings, prompt_strings, PAIR)
         formatted_prompts, locations = self._format_prompts(source_strings, prompt_strings)
 
         probs = self._get_probs(formatted_prompts, prompt_length, locations)
@@ -1157,7 +913,6 @@ class PromptedClassificationReward(object):
 
         for batch_index in range(len(prompts)): # 1-shot: z-score always work, not needs to change code bone
             # new
-            # if PAIR:
             if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
                 Combine=True
                 if not Combine or mode=='infer':
@@ -1431,131 +1186,102 @@ class PromptedClassificationReward(object):
 
                     quantities_to_log["avg_reward"].append(average_reward.item())
             elif self._task_name in ['sst-5', 'yelp-5']:
-                    if mode =='train':
-                        current_pt = [prompt_strings[batch_index] for _ in range(len(source_strings))]
-                        formatted_current_prompt_sentences,_ = self._format_prompts(source_strings, current_pt, PAIR)
-                        current_probs = self._get_probs(formatted_current_prompt_sentences, prompt_length)
-                        # probs
-                        probs_1 = torch.softmax(current_probs[first_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
-                        probs_2 = torch.softmax(current_probs[second_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
-                        probs_3 = torch.softmax(current_probs[third_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
-                        probs_4 = torch.softmax(current_probs[fourth_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
-                        probs_5 = torch.softmax(current_probs[fifth_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
-                        # prob
-                        prob_1 = probs_1[:, 0]
-                        prob_2 = probs_2[:, 1]
-                        prob_3 = probs_3[:, 2]
-                        prob_4 = probs_4[:, 3]
-                        prob_5 = probs_5[:, 4]
-                        # current best
-                        predict_best_prob1 = torch.max(probs_1, dim=-1).values
-                        predict_best_prob2 = torch.max(probs_2, dim=-1).values
-                        predict_best_prob3 = torch.max(probs_3, dim=-1).values
-                        predict_best_prob4 = torch.max(probs_4, dim=-1).values
-                        predict_best_prob5 = torch.max(probs_5, dim=-1).values
-                        # current labels
-                        predict_label1 = torch.argmax(probs_1, dim=-1)
-                        predict_label2 = torch.argmax(probs_2, dim=-1)
-                        predict_label3 = torch.argmax(probs_3, dim=-1)
-                        predict_label4 = torch.argmax(probs_4, dim=-1)
-                        predict_label5 = torch.argmax(probs_5, dim=-1)
-                        # whether predict correctly
-                        index_1 = torch.where(predict_label1 == 0, True, False)
-                        index_2 = torch.where(predict_label2 == 1, True, False)
-                        index_3 = torch.where(predict_label3 == 2, True, False)
-                        index_4 = torch.where(predict_label4 == 3, True, False)
-                        index_5 = torch.where(predict_label5 == 4, True, False)
-                        # acc
-                        index1_val = index_1 * torch.ones(index_1.shape).cuda()
-                        index2_val = index_2 * torch.ones(index_2.shape).cuda()
-                        index3_val = index_3 * torch.ones(index_3.shape).cuda()
-                        index4_val = index_4 * torch.ones(index_4.shape).cuda()
-                        index5_val = index_5 * torch.ones(index_5.shape).cuda()
+                if mode =='train':
+                    current_pt = [prompt_strings[batch_index] for _ in range(len(source_strings))]
+                    formatted_current_prompt_sentences,_ = self._format_prompts(source_strings, current_pt, PAIR)
+                    current_probs = self._get_probs(formatted_current_prompt_sentences, prompt_length)
+                    # probs
+                    probs_1 = torch.softmax(current_probs[first_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
+                    probs_2 = torch.softmax(current_probs[second_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
+                    probs_3 = torch.softmax(current_probs[third_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
+                    probs_4 = torch.softmax(current_probs[fourth_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
+                    probs_5 = torch.softmax(current_probs[fifth_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
+                    # prob
+                    prob_1 = probs_1[:, 0]
+                    prob_2 = probs_2[:, 1]
+                    prob_3 = probs_3[:, 2]
+                    prob_4 = probs_4[:, 3]
+                    prob_5 = probs_5[:, 4]
+                    # current best
+                    predict_best_prob1 = torch.max(probs_1, dim=-1).values
+                    predict_best_prob2 = torch.max(probs_2, dim=-1).values
+                    predict_best_prob3 = torch.max(probs_3, dim=-1).values
+                    predict_best_prob4 = torch.max(probs_4, dim=-1).values
+                    predict_best_prob5 = torch.max(probs_5, dim=-1).values
+                    # current labels
+                    predict_label1 = torch.argmax(probs_1, dim=-1)
+                    predict_label2 = torch.argmax(probs_2, dim=-1)
+                    predict_label3 = torch.argmax(probs_3, dim=-1)
+                    predict_label4 = torch.argmax(probs_4, dim=-1)
+                    predict_label5 = torch.argmax(probs_5, dim=-1)
+                    # whether predict correctly
+                    index_1 = torch.where(predict_label1 == 0, True, False)
+                    index_2 = torch.where(predict_label2 == 1, True, False)
+                    index_3 = torch.where(predict_label3 == 2, True, False)
+                    index_4 = torch.where(predict_label4 == 3, True, False)
+                    index_5 = torch.where(predict_label5 == 4, True, False)
+                    # acc
+                    index1_val = index_1 * torch.ones(index_1.shape).cuda()
+                    index2_val = index_2 * torch.ones(index_2.shape).cuda()
+                    index3_val = index_3 * torch.ones(index_3.shape).cuda()
+                    index4_val = index_4 * torch.ones(index_4.shape).cuda()
+                    index5_val = index_5 * torch.ones(index_5.shape).cuda()
 
-                        acc = torch.sum(index_1) + torch.sum(index_2) + torch.sum(index_3) + torch.sum(index_4) + torch.sum(index_5)
-                        acc = acc/(len(index_1)*5)
-                        
-                        predict_sec_prob1 = torch.topk(probs_1, k=2, dim=-1).values[:,1]
-                        predict_sec_prob2 = torch.topk(probs_2, k=2, dim=-1).values[:,1]
-                        predict_sec_prob3 = torch.topk(probs_3, k=2, dim=-1).values[:,1]
-                        predict_sec_prob4 = torch.topk(probs_4, k=2, dim=-1).values[:,1]
-                        predict_sec_prob5 = torch.topk(probs_5, k=2, dim=-1).values[:,1]
-                        # reward
-                        reward_1 = torch.where(prob_1 - predict_best_prob1>=0, 2*(predict_best_prob1-predict_sec_prob1), 1.8*(prob_1-predict_best_prob1))
-                        reward_2 = torch.where(prob_2 - predict_best_prob2>=0, 2*(predict_best_prob2-predict_sec_prob2), 1.8*(prob_2-predict_best_prob2))
-                        reward_3 = torch.where(prob_3 - predict_best_prob3>=0, 2*(predict_best_prob3-predict_sec_prob3), 1.8*(prob_3-predict_best_prob3))
-                        reward_4 = torch.where(prob_4 - predict_best_prob4>=0, 2*(predict_best_prob4-predict_sec_prob4), 1.8*(prob_4-predict_best_prob4))
-                        reward_5 = torch.where(prob_5 - predict_best_prob5>=0, 2*(predict_best_prob5-predict_sec_prob5), 1.8*(prob_5-predict_best_prob5))
-                        
-                        average_reward = torch.mean(reward_1+reward_2+reward_3+reward_4+reward_5) * 20
+                    acc = torch.sum(index_1) + torch.sum(index_2) + torch.sum(index_3) + torch.sum(index_4) + torch.sum(index_5)
+                    acc = acc/(len(index_1)*5)
                     
-                        quantities_to_log["avg_1_reward"].append(torch.mean(reward_1).item())
-                        quantities_to_log["avg_2_reward"].append(torch.mean(reward_2).item())
-                        quantities_to_log["avg_3_reward"].append(torch.mean(reward_3).item())
-                        quantities_to_log["avg_4_reward"].append(torch.mean(reward_4).item())
-                        quantities_to_log["avg_5_reward"].append(torch.mean(reward_5).item())
+                    predict_sec_prob1 = torch.topk(probs_1, k=2, dim=-1).values[:,1]
+                    predict_sec_prob2 = torch.topk(probs_2, k=2, dim=-1).values[:,1]
+                    predict_sec_prob3 = torch.topk(probs_3, k=2, dim=-1).values[:,1]
+                    predict_sec_prob4 = torch.topk(probs_4, k=2, dim=-1).values[:,1]
+                    predict_sec_prob5 = torch.topk(probs_5, k=2, dim=-1).values[:,1]
+                    # reward
+                    reward_1 = torch.where(prob_1 - predict_best_prob1>=0, 2*(predict_best_prob1-predict_sec_prob1), 1.8*(prob_1-predict_best_prob1))
+                    reward_2 = torch.where(prob_2 - predict_best_prob2>=0, 2*(predict_best_prob2-predict_sec_prob2), 1.8*(prob_2-predict_best_prob2))
+                    reward_3 = torch.where(prob_3 - predict_best_prob3>=0, 2*(predict_best_prob3-predict_sec_prob3), 1.8*(prob_3-predict_best_prob3))
+                    reward_4 = torch.where(prob_4 - predict_best_prob4>=0, 2*(predict_best_prob4-predict_sec_prob4), 1.8*(prob_4-predict_best_prob4))
+                    reward_5 = torch.where(prob_5 - predict_best_prob5>=0, 2*(predict_best_prob5-predict_sec_prob5), 1.8*(prob_5-predict_best_prob5))
+                    
+                    average_reward = torch.mean(reward_1+reward_2+reward_3+reward_4+reward_5) * 20
+                
+                    quantities_to_log["avg_1_reward"].append(torch.mean(reward_1).item())
+                    quantities_to_log["avg_2_reward"].append(torch.mean(reward_2).item())
+                    quantities_to_log["avg_3_reward"].append(torch.mean(reward_3).item())
+                    quantities_to_log["avg_4_reward"].append(torch.mean(reward_4).item())
+                    quantities_to_log["avg_5_reward"].append(torch.mean(reward_5).item())
 
-                        quantities_to_log["avg_reward"].append(average_reward.item())
-                    elif mode == 'infer':
-                        first_logit = probs[batch_index * 5, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
-                        second_logit = probs[batch_index * 5 + 1, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
-                        third_logit = probs[batch_index * 5 + 2, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
-                        fourth_logit = probs[batch_index * 5 + 3, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
-                        fifth_logit = probs[batch_index * 5 + 4, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
+                    quantities_to_log["avg_reward"].append(average_reward.item())
+                elif mode == 'infer':
+                    first_logit = probs[batch_index * 5, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
+                    second_logit = probs[batch_index * 5 + 1, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
+                    third_logit = probs[batch_index * 5 + 2, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
+                    fourth_logit = probs[batch_index * 5 + 3, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
+                    fifth_logit = probs[batch_index * 5 + 4, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
 
-                        first_probs = torch.softmax(first_logit, -1)
-                        second_probs = torch.softmax(second_logit, -1)
-                        third_probs = torch.softmax(third_logit, -1)
-                        fourth_probs = torch.softmax(fourth_logit, -1)
-                        fifth_probs = torch.softmax(fifth_logit, -1)
+                    first_probs = torch.softmax(first_logit, -1)
+                    second_probs = torch.softmax(second_logit, -1)
+                    third_probs = torch.softmax(third_logit, -1)
+                    fourth_probs = torch.softmax(fourth_logit, -1)
+                    fifth_probs = torch.softmax(fifth_logit, -1)
 
-                        first_prob = first_probs[0]
-                        second_prob = second_probs[1]
-                        third_prob = third_probs[2]
-                        fourth_prob = fourth_probs[3]
-                        fifth_prob = fifth_probs[4]
+                    first_prob = first_probs[0]
+                    second_prob = second_probs[1]
+                    third_prob = third_probs[2]
+                    fourth_prob = fourth_probs[3]
+                    fifth_prob = fifth_probs[4]
 
-                        # predict label
-                        first_predict_label = torch.argmax(first_probs, dim=-1)
-                        second_predict_label = torch.argmax(second_probs, dim=-1)
-                        third_predict_label = torch.argmax(third_probs, dim=-1)
-                        fourth_predict_label = torch.argmax(fourth_probs, dim=-1)
-                        fifth_predict_label = torch.argmax(fifth_probs, dim=-1)
-
-            # else:      
-            #     if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
-            #         logit = probs[batch_index, [self.pos_id, self.neg_id]] # batch
-            #         pn_probs = torch.softmax(logit, -1)
-            #         label = source_strings[batch_index][1]
-     
-            #         pos_prob = pn_probs[0] if label == 1 else pn_probs[1]
-            #         neg_prob = pn_probs[1] if label == 1 else pn_probs[0]
-
-            #         reward = (pos_prob - neg_prob) * 5
-            #     elif self._task_name in ['sst-5', 'yelp-5']:
-            #         logit = probs[batch_index, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
-            #         label = source_strings[batch_index][-1]
-            #         p_probs = torch.softmax(logit, -1)
-            #         if label == 0:
-            #             prob = p_probs[0]
-            #         elif label == 1:
-            #             prob = p_probs[1]
-            #         elif label == 2:
-            #             prob = p_probs[2]
-            #         elif label == 3:
-            #             prob = p_probs[3]
-            #         elif label == 4:
-            #             prob = p_probs[4]
-            #         reward = (prob - 0.2) * 10
-            #     quantities_to_log["prob"].append(prob.item())
-            #     quantities_to_log["reward"].append(reward.item())
+                    # predict label
+                    first_predict_label = torch.argmax(first_probs, dim=-1)
+                    second_predict_label = torch.argmax(second_probs, dim=-1)
+                    third_predict_label = torch.argmax(third_probs, dim=-1)
+                    fourth_predict_label = torch.argmax(fourth_probs, dim=-1)
+                    fifth_predict_label = torch.argmax(fifth_probs, dim=-1)
 
             if mode == 'train':
                 input_rewards['a'] += [average_reward.item()]
             
             self._counter += 1
             if mode == 'train':
-                # if PAIR == True:
                 if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr', 'RTE', 'MRPC']:
                     print(prompts[batch_index], '\n', 
                     formatted_prompts[batch_index * 2], '\n', 
@@ -1587,15 +1313,9 @@ class PromptedClassificationReward(object):
                     #'4 prob:', prob_4.item(), '|',
                     'Acc:', acc.item(), '|',
                     'Reward:', round(average_reward.item(), 2))
-                # else:
-                #     print(prompts[batch_index], '\n',
-                #         formatted_prompts[batch_index], '\n',
-                #         'Prob:', prob.item(), '|',
-                #         'Reward:', round(reward.item(),2))
             
                 rewards.append(average_reward)
             if mode == 'infer': # val score
-                # if PAIR == True:
                 if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
                     pos_acc = torch.tensor(1) if pos_pos_prob >= 0.5 else torch.tensor(0)
                     neg_acc = torch.tensor(1) if neg_neg_prob >= 0.5 else torch.tensor(0)
@@ -1616,9 +1336,6 @@ class PromptedClassificationReward(object):
                     acc_5 = torch.tensor(1) if fifth_predict_label == 4 else torch.tensor(0)
 
                     rewards.append(torch.tensor((acc_1+acc_2+acc_3+acc_4+acc_5)/5).float())
-                # else:
-                #     acc = torch.tensor(1).float() if prob >= 0.2 else torch.tensor(0).float()
-                #     rewards.append(acc)
 
             
         rewards_tensor = torch.stack(rewards)
@@ -1642,10 +1359,8 @@ class PromptedClassificationReward(object):
 
         if to_tensor is True:
             return rewards_tensor, rewards_log
-            # return rewards_tensor, rewards_log, prompt_strings
         else:
             return rewards_tensor.tolist(), rewards_log
-            # return rewards_tensor.tolist(), rewards_log, prompt_strings
 
     def __call__(
         self,

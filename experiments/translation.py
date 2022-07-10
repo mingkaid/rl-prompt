@@ -108,7 +108,15 @@ def prepare_model(
             device=0,
             # TST arguments
             tst_dataset=config.tst_dataset,
-            tst_data_seed=config.tst_data_seed)
+            tst_data_seed=config.tst_data_seed,
+            policy_lm='distilgpt2',
+            input_specific=True,
+            logit_bias=0,
+            dataset=config.tst_dataset,
+            dataset_seed=config.tst_data_seed,
+            dataset_basepath='/data/mingkai/prompt-generation/dirty-code/rl-prompt',
+            n_repeats=4,
+            fluent_prompt=False)
 
     behavior_model = None
     if use_behavior_model is True:
