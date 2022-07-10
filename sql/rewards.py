@@ -13,16 +13,12 @@ from joblib import Parallel, delayed
 from typing import List, Tuple, Union, Dict, Optional, Callable, Any, cast
 from ctc_score import StyleTransferScorer
 from bert_score import BERTScorer
-from transformers import (LogitsProcessor, 
-                          LogitsProcessorList, 
-                          TextClassificationPipeline,
-                          AutoModelForSequenceClassification, 
-                          AutoTokenizer)
 
 
 from datasets import load_metric
 from transformers import (
     pipeline,
+    TextClassificationPipeline,
     PreTrainedModel,
     PreTrainedTokenizerFast,
     AutoTokenizer,
@@ -34,8 +30,6 @@ from transformers import (
     PegasusForConditionalGeneration,
     RobertaForSequenceClassification,
     AutoModelForMaskedLM)
-# from sentence_transformers import CrossEncoder
-from sentence_transformers import SentenceTransformer
 
 from modules import gpt2 as gpt2_modules
 from sql.types import FloatTensor
@@ -47,13 +41,7 @@ from math import cos, pi
 import random
 import itertools
 
-try:
-    from detoxify import Detoxify
-except ModuleNotFoundError:
-    Detoxify = None
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 def check_Xs_Ys_sizes(
         Xs: List,
@@ -90,7 +78,7 @@ class PromptedTextStyleTransferReward(object):
             prompt_dataset_basepath: str = '/data/mingkai/prompt-generation/dirty-code/rl-prompt',
             # TST-specific parameters
             tst_clf_basepath: str = '/data/mingkai/prompt-generation/soft-Q-learning-for-text-generation/experiments/yelp_sentiment_classifier',
-            tst_n_repeats: Optional[int] = 4,
+            tst_n_repeats: int = 4,
             tst_num_samples: int = 32, # Num of samples from which to take the output
             tst_num_bootstraps: int = 4, # Num of bootstraps to reduce reward randomness
             **kwargs
@@ -148,12 +136,12 @@ class PromptedTextStyleTransferReward(object):
         tst_inputs = {}
         # tokenizer = self._generator.tokenizer
         if self.dataset == 'yelp':
-            filepath_train_0 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.train.0.preprocess")
-            filepath_train_1 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.train.1.preprocess")
-            filepath_dev_0 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.dev.0.preprocess")
-            filepath_dev_1 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.dev.1.preprocess")
-            filepath_test_ref_0 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.test_ref.0.preprocess")
-            filepath_test_ref_1 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.test_ref.1.preprocess")
+            filepath_train_0 = os.path.join(self.basepath, "prompt_tasks/text-style-transfer/yelp/preprocessed/sentiment.train.0.preprocess")
+            filepath_train_1 = os.path.join(self.basepath, "prompt_tasks/text-style-transfer/yelp/preprocessed/sentiment.train.1.preprocess")
+            filepath_dev_0 = os.path.join(self.basepath, "prompt_tasks/text-style-transfer/yelp/preprocessed/sentiment.dev.0.preprocess")
+            filepath_dev_1 = os.path.join(self.basepath, "prompt_tasks/text-style-transfer/yelp/preprocessed/sentiment.dev.1.preprocess")
+            filepath_test_ref_0 = os.path.join(self.basepath, "prompt_tasks/text-style-transfer/yelp/preprocessed/sentiment.test_ref.0.preprocess")
+            filepath_test_ref_1 = os.path.join(self.basepath, "prompt_tasks/text-style-transfer/yelp/preprocessed/sentiment.test_ref.1.preprocess")
             
             with open(filepath_train_0) as f: 
                 sentences_train_0 = [line.strip() for line in f]
@@ -173,9 +161,16 @@ class PromptedTextStyleTransferReward(object):
                 
         elif self.dataset in ['shakespeare']:
             seed_dic = {0:f'100-100', 1:f'100-13', 2:f'100-21', 3:f'100-42', 4:f'100-87'}
-            filepath_train = os.path.join(self.basepath, f'clf-tasks/100-shot/{self.dataset}/{seed_dic[self.seed]}/train.tsv')
-            filepath_dev = os.path.join(self.basepath, f'clf-tasks/100-shot/{self.dataset}/{seed_dic[self.seed]}/dev.tsv')
-            filepath_test = os.path.join(self.basepath, f'clf-tasks/100-shot/{self.dataset}/{seed_dic[self.seed]}/test.tsv')
+            
+            filepath_train = os.path.join(self.basepath, 
+                                          'prompt_tasks/text-style-transfer/',
+                                          f'{self.dataset}/100-shot/{seed_dic[self.seed]}/train.tsv')
+            filepath_dev = os.path.join(self.basepath, 
+                                          'prompt_tasks/text-style-transfer/',
+                                          f'{self.dataset}/100-shot/{seed_dic[self.seed]}/dev.tsv')
+            filepath_test = os.path.join(self.basepath, 
+                                          'prompt_tasks/text-style-transfer/',
+                                          f'{self.dataset}/100-shot/{seed_dic[self.seed]}/test.tsv')
             
             df_train = pd.read_csv(filepath_train, sep='\t')
             df_dev = pd.read_csv(filepath_dev, sep='\t')
@@ -504,7 +499,7 @@ class PromptedClassificationReward(object):
             prompt_task_lm: str = 'roberta-large',
             prompt_dataset: Optional[str] = None,
             prompt_dataset_seed: Optional[int] = None,
-            prompt_dataset_basepath: str = '/data/mingkai/prompt-generation/dirty-code/rl-prompt',
+            prompt_dataset_basepath: str = '.',
             # Classification-specific parameters
             clf_kshot: int = 16,
             clf_num_classes: int = 2,
@@ -664,12 +659,11 @@ class PromptedClassificationReward(object):
             inputs['infer'] = [(text, 0) for text in list(dev_1_dict.keys())] + [(text, 1) for text in list(dev_2_dict.keys())] + [(text, 2) for text in list(dev_3_dict.keys())] + [(text, 3) for text in list(dev_4_dict.keys())] + [(text, 4) for text in list(dev_5_dict.keys())]
             random.Random(0).shuffle(inputs['train'])
             random.Random(0).shuffle(inputs['infer'])
-            
         
         return inputs
 
     def _load_few_shot_examples(self):
-        base_path = os.path.join(self.dataset_basepath, f'tasks/{str(self.kshot)}-shot/')
+        base_path = os.path.join(self.dataset_basepath, f'prompt_tasks/few-shot-classification/{str(self.kshot)}-shot/')
         seed_dic = {0:'16-100', 1:'16-13', 2:'16-21', 3:'16-42', 4:'16-87'}
         
         dataset_path = os.path.join(base_path, self.dataset, seed_dic[self.dataset_seed])

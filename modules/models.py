@@ -178,12 +178,12 @@ class GPT2ConditionedMLP(nn.Module):
         print(os.path.abspath(self.basepath))
         assert self.dataset in ['yelp', 'shakespeare'], self.dataset
         if self.dataset == 'yelp':
-            filepath_train_0 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.train.0.preprocess")
-            filepath_train_1 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.train.1.preprocess")
-            filepath_dev_0 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.dev.0.preprocess")
-            filepath_dev_1 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.dev.1.preprocess")
-            filepath_test_ref_0 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.test_ref.0.preprocess")
-            filepath_test_ref_1 = os.path.join(self.basepath, "data/yelp-gpt2-control-only/raw-prep/sentiment.test_ref.1.preprocess")
+            filepath_train_0 = os.path.join(self.basepath, "prompt_tasks/text-style-transfer/yelp/preprocessed/sentiment.train.0.preprocess")
+            filepath_train_1 = os.path.join(self.basepath, "prompt_tasks/text-style-transfer/yelp/preprocessed/sentiment.train.1.preprocess")
+            filepath_dev_0 = os.path.join(self.basepath, "prompt_tasks/text-style-transfer/yelp/preprocessed/sentiment.dev.0.preprocess")
+            filepath_dev_1 = os.path.join(self.basepath, "prompt_tasks/text-style-transfer/yelp/preprocessed/sentiment.dev.1.preprocess")
+            filepath_test_ref_0 = os.path.join(self.basepath, "prompt_tasks/text-style-transfer/yelp/preprocessed/sentiment.test_ref.0.preprocess")
+            filepath_test_ref_1 = os.path.join(self.basepath, "prompt_tasks/text-style-transfer/yelp/preprocessed/sentiment.test_ref.1.preprocess")
 
             with open(filepath_train_0) as f: 
                 sentences_train_0 = [line.strip() for line in f]
@@ -203,9 +203,16 @@ class GPT2ConditionedMLP(nn.Module):
                 
         elif self.dataset in ['shakespeare']:
             seed_dic = {0:f'100-100', 1:f'100-13', 2:f'100-21', 3:f'100-42', 4:f'100-87'}
-            filepath_train = os.path.join(self.basepath, f"clf-tasks/100-shot/{self.dataset}/{seed_dic[self.seed]}/train.tsv")
-            filepath_dev = os.path.join(self.basepath, f"clf-tasks/100-shot/{self.dataset}/{seed_dic[self.seed]}/dev.tsv")
-            filepath_test = os.path.join(self.basepath, f"clf-tasks/100-shot/{self.dataset}/{seed_dic[self.seed]}/test.tsv")
+            
+            filepath_train = os.path.join(self.basepath, 
+                                          'prompt_tasks/text-style-transfer/',
+                                          f'{self.dataset}/100-shot/{seed_dic[self.seed]}/train.tsv')
+            filepath_dev = os.path.join(self.basepath, 
+                                          'prompt_tasks/text-style-transfer/',
+                                          f'{self.dataset}/100-shot/{seed_dic[self.seed]}/dev.tsv')
+            filepath_test = os.path.join(self.basepath, 
+                                          'prompt_tasks/text-style-transfer/',
+                                          f'{self.dataset}/100-shot/{seed_dic[self.seed]}/test.tsv')
             
             df_train = pd.read_csv(filepath_train, sep='\t')
             df_dev = pd.read_csv(filepath_dev, sep='\t')
