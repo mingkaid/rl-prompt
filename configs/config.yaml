@@ -54,7 +54,7 @@ translation:
     prompt_dataset_seed: null
     prompt_dataset_basepath: "."
     # text style transfer arguments
-    tst_clf_basepath: "/data/mingkai/prompt-generation/soft-Q-learning-for-text-generation/experiments/yelp_sentiment_classifier"
+    tst_clf_basepath: null
     tst_n_repeats: 4
     tst_num_samples: 32 # Num of samples from which to take the output
     tst_num_bootstraps: 4 # Num of bootstraps to reduce reward randomness

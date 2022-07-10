@@ -75,9 +75,9 @@ class PromptedTextStyleTransferReward(object):
             prompt_task_lm: str = 'distilgpt2',
             prompt_dataset: Optional[str] = None,
             prompt_dataset_seed: Optional[int] = None,
-            prompt_dataset_basepath: str = '/data/mingkai/prompt-generation/dirty-code/rl-prompt',
+            prompt_dataset_basepath: str = '.',
             # TST-specific parameters
-            tst_clf_basepath: str = '/data/mingkai/prompt-generation/soft-Q-learning-for-text-generation/experiments/yelp_sentiment_classifier',
+            tst_clf_basepath: Optional[str] = None,
             tst_n_repeats: int = 4,
             tst_num_samples: int = 32, # Num of samples from which to take the output
             tst_num_bootstraps: int = 4, # Num of bootstraps to reduce reward randomness
@@ -105,12 +105,16 @@ class PromptedTextStyleTransferReward(object):
         else:
             self.basepath = prompt_dataset_basepath
         print(self.basepath)
+
+        if tst_clf_basepath is not None: 
+            self.tst_clf_basepath = tst_clf_basepath
+        else: 
+            self.tst_clf_basepath = os.path.join(self.basepath, 'experiments/tst_classifiers/')
         dataset_clf_tokenizers = {'yelp': 'bert-base-uncased',
-                                  'shakespeare': 'bert-base-uncased',}
-        dataset_clf_paths = {'yelp': tst_clf_basepath + "/results-bert-base/checkpoint-10410",
-                             'shakespeare': tst_clf_basepath + f"/shakespeare-bert-base-uncased-train-100-{self.seed}"}
+                                  'shakespeare': 'bert-base-uncased'}
+        dataset_clf_paths = {'yelp': self.tst_clf_basepath + "/yelp-bert-base-uncased-train",
+                             'shakespeare': self.tst_clf_basepath + f"/shakespeare-bert-base-uncased-train-100-{self.seed}"}
         
-        self.lower = ('lower' in self.dataset) or (self.dataset == 'yelp')
         self._classifier = pipeline(
             "sentiment-analysis",
             model=dataset_clf_paths[self.dataset],
@@ -121,6 +125,7 @@ class PromptedTextStyleTransferReward(object):
         self._counter = 0
         self.tokens_explored = set()
         self.n_repeats = tst_n_repeats
+        self.lower = ('lower' in self.dataset) or (self.dataset == 'yelp')
         # self.ctc_scorer = StyleTransferScorer(align='E-roberta')
         self._bert_scorer = BERTScorer('roberta-large', device=reward_device, rescale_with_baseline=True, lang='en')
         
@@ -160,7 +165,7 @@ class PromptedTextStyleTransferReward(object):
             test_size = 16
                 
         elif self.dataset in ['shakespeare']:
-            seed_dic = {0:f'100-100', 1:f'100-13', 2:f'100-21', 3:f'100-42', 4:f'100-87'}
+            seed_dic = {0:f'100-100', 1:f'100-13', 2:f'100-21'}
             
             filepath_train = os.path.join(self.basepath, 
                                           'prompt_tasks/text-style-transfer/',

@@ -202,7 +202,7 @@ class GPT2ConditionedMLP(nn.Module):
             test_size = 16
                 
         elif self.dataset in ['shakespeare']:
-            seed_dic = {0:f'100-100', 1:f'100-13', 2:f'100-21', 3:f'100-42', 4:f'100-87'}
+            seed_dic = {0:f'100-100', 1:f'100-13', 2:f'100-21'}
             
             filepath_train = os.path.join(self.basepath, 
                                           'prompt_tasks/text-style-transfer/',
@@ -228,7 +228,7 @@ class GPT2ConditionedMLP(nn.Module):
             sentences_test_1 = df_test.query('label == 1').text.tolist()
             test_size = 100
             
-            if self.dataset == 'shakespeare' and self.seed in [0, 1, 2, 3, 4]: 
+            if self.dataset == 'shakespeare': 
                 new_train_0 = [sent for sent in sentences_train_0 if len(self.tokenizer(sent)['input_ids']) < 30]
                 new_train_1 = [sent for sent in sentences_train_1 if len(self.tokenizer(sent)['input_ids']) < 30]
                 new_dev_0 = [sent for sent in sentences_dev_0 if len(self.tokenizer(sent)['input_ids']) < 30]
