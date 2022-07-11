@@ -526,7 +526,7 @@ class PromptedClassificationReward(object):
         self._templates = self.load_templates()
         self._inputs = self._load_inputs()
         task_name = self.dataset
-        if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+        if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
             self._inputs_idx = {('train', 'LABEL_0'): 0, 
                                 ('train', 'LABEL_1'): 0,
                                 ('infer', 'LABEL_0'): 0,
@@ -555,7 +555,7 @@ class PromptedClassificationReward(object):
                                 }
 
         self._counter = 0
-        if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+        if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
             self.pos_verbalizer_candidate = ['\u0120positive', '\u0120great'   ,'\u0120good', '\u0120wonderful', '\u0120delicious', '\u0120dog', '\u0120cat', '\u0120terrible', '\u0120yes']
             self.neg_verbalizer_candidate = ['\u0120negative', '\u0120terrible','\u0120bad' , '\u0120bad', '\u0120bad', '\u0120cat', '\u0120dog', '\u0120great', '\u0120no']
             self.pos_verbalizer_candidate_nospace = ['postive', 'great', 'good', 'wonderful']
@@ -594,7 +594,7 @@ class PromptedClassificationReward(object):
             # Template for left-to-right LMs like GPT-2
             temp_template = "{sentence_1} {prompt}" # TODO
         else:
-            if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr', 'sst-5', 'yelp-5']:
+            if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr', 'sst-5', 'yelp-5']:
                 temp_template = "{sentence_1} {prompt} <mask> ."            
             elif self._task_name in ['agnews']: # TODO
                 temp_template = "<mask> {prompt} {sentence_1}"
@@ -607,7 +607,7 @@ class PromptedClassificationReward(object):
         assert self.dataset_seed in [0, 1, 2, 3, 4]
         assert self.kshot in [16]
         task_name = self.dataset
-        if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+        if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
             train_pos_dict, train_neg_dict, dev_pos_dict, dev_neg_dict = self._load_few_shot_examples()
         elif task_name == 'agnews':
             (train_world_dict, train_sports_dict, train_business_dict, train_technology_dict, 
@@ -616,7 +616,7 @@ class PromptedClassificationReward(object):
             (train_1_dict, train_2_dict, train_3_dict, train_4_dict, train_5_dict, 
             dev_1_dict, dev_2_dict, dev_3_dict, dev_4_dict, dev_5_dict) = self._load_few_shot_examples()
         
-        if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+        if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
             inputs[('train', 'LABEL_0')] = list(train_pos_dict.keys())#sentences_train_1[:kshot]
             inputs[('train', 'LABEL_1')] = list(train_neg_dict.keys())#sentences_train_0[:kshot]
             inputs[('infer', 'LABEL_0')] = list(dev_pos_dict.keys())#sentences_train_1[-kshot:]
@@ -668,7 +668,7 @@ class PromptedClassificationReward(object):
         train_tsv = os.path.join(dataset_path, 'train.tsv')
         dev_tsv = os.path.join(dataset_path, 'dev.tsv')
         task_name = self.dataset
-        if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+        if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
             # read train, binary sentiment at first
             train_pos_dict = {}
             train_neg_dict = {}
@@ -708,7 +708,7 @@ class PromptedClassificationReward(object):
             
             label = int(line.strip('\n').split('\t')[1])
             text = line.split('\t')[0] # single sentence
-            if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+            if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
                 if label == 0:
                     train_neg_dict[text] = label
                 elif label == 1:
@@ -745,7 +745,7 @@ class PromptedClassificationReward(object):
             label = int(line.strip('\n').split('\t')[1])
             text = line.split('\t')[0] 
 
-            if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+            if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
                 if label == 0:
                     dev_neg_dict[text] = label
                 elif label == 1:
@@ -771,7 +771,7 @@ class PromptedClassificationReward(object):
                 elif label == 4:
                     dev_5_dict[text] = label
                     
-        if task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+        if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
             return train_pos_dict, train_neg_dict, dev_pos_dict, dev_neg_dict # dict: "text": label
         elif task_name == 'agnews':
             return train_world_dict, train_sports_dict, train_business_dict, train_technology_dict, dev_world_dict, dev_sports_dict, dev_business_dict, dev_technology_dict
@@ -793,7 +793,7 @@ class PromptedClassificationReward(object):
         # per batch
         inputs = []
         self._task_name = self.dataset
-        if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+        if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
             p_data = self._inputs[(mode, 'LABEL_0')]
             n_data = self._inputs[(mode, 'LABEL_1')]
         elif self._task_name == 'agnews':
@@ -810,7 +810,7 @@ class PromptedClassificationReward(object):
 
         for i, label in enumerate(target_labels): # current input per batch
             idx = self._inputs_idx[(mode, label)] 
-            if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+            if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
                 if mode == 'train':
                     inputs.append([p_data[idx], n_data[idx]])
                 elif mode == 'infer':
@@ -824,7 +824,7 @@ class PromptedClassificationReward(object):
                 inputs.append([data_1[idx], data_2[idx], data_3[idx], data_4[idx], data_5[idx]])
                 
             idx += 1
-            if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+            if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
                 idx %= len(p_data)
             elif self._task_name == 'agnews':
                 idx %= len(world_data)
@@ -851,7 +851,7 @@ class PromptedClassificationReward(object):
         encoded_input  = self._tokenizer(texts, padding='longest', truncation=True, return_tensors="pt", add_special_tokens=True)
         batch_size = len(texts)
         self._task_name = self.dataset
-        if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr', 'sst-5', 'yelp-5']:
+        if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr', 'sst-5', 'yelp-5']:
             seq_len = torch.ne(encoded_input.input_ids, self._tokenizer.pad_token_id).sum(-1) - 1
             if 'bert' in self.task_lm:
                 seq_len = seq_len - 2
@@ -901,7 +901,7 @@ class PromptedClassificationReward(object):
             sports_index = [i + 1 for i in world_index]
             business_index = [i + 2 for i in world_index]
             technology_index = [i + 3 for i in world_index]
-        elif self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+        elif self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
             pos_index = [i * 2 for i in range(len(prompts))]
             neg_index = [i + 1 for i in pos_index]
         elif self._task_name in ['yelp-5', 'sst-5']:
@@ -915,7 +915,7 @@ class PromptedClassificationReward(object):
 
         for batch_index in range(len(prompts)): # 1-shot: z-score always work, not needs to change code bone
             # new
-            if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+            if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
                 Combine=True
                 if not Combine or mode=='infer':
                     pos_logits = probs[batch_index * 2, [self.pos_id, self.neg_id]]
@@ -1284,7 +1284,7 @@ class PromptedClassificationReward(object):
             
             self._counter += 1
             if mode == 'train':
-                if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr', 'RTE', 'MRPC']:
+                if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr', 'RTE', 'MRPC']:
                     print(prompts[batch_index], '\n', 
                     formatted_prompts[batch_index * 2], '\n', 
                     formatted_prompts[batch_index * 2 + 1], '\n', 
@@ -1318,7 +1318,7 @@ class PromptedClassificationReward(object):
             
                 rewards.append(average_reward)
             if mode == 'infer': # val score
-                if self._task_name in ['SST-2', 'yelp-2', 'mr', 'cr']:
+                if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
                     pos_acc = torch.tensor(1) if pos_pos_prob >= 0.5 else torch.tensor(0)
                     neg_acc = torch.tensor(1) if neg_neg_prob >= 0.5 else torch.tensor(0)
 

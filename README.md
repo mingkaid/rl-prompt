@@ -43,30 +43,17 @@ Our policy network is in `modules/models.py`, and we combine prompts with LMs to
 Below are the commands we use to run the experiments for 1) few-shot text classification and 2) text style transfer, as described in our paper.
 
 ### Few-Shot Text Classification
-The command below runs a 16-shot classification experiment. You can toggle the dataset by the options for `prompt_dataset`
-
-For each dataset, we provide 5 different 16-shot training sets, toggled by `prompt_dataset_seed`
+The script below runs a 16-shot classification experiment, with options for `task_lm` and `dataset`.
+For each dataset, we provide 5 different 16-shot training sets, toggled by `seed`
 ```
-python run_experiments.py \
-translation.task_name="prompt.classification_gpt2_vocab_16shot_5token" \
-translation.architecture="gpt2_conditioned_mlp" \
-translation.save_dir=./outputs \
-translation.num_epochs=1200 \
-translation.training_mode="sql-onpolicy" \
-translation.num_batches_per_epoch=10 \
-translation.save_frequency=2 \
-translation.reward_old_min=0 \
-translation.reward_old_max=1 \
-translation.reward_shaping_min=0 \
-translation.reward_shaping_max=3 \
-translation.top_k=256 \
-translation.random_seed=2 \
-translation.learning_rate=5e-5 \
-translation.target_learning_rate=1e-3  \
-translation.reward_name="prompted-classification" \
-translation.prompt_task_lm=[distilroberta-base,roberta-large] \
-translation.prompt_dataset=[SST-2,yelp-2,mr,cr,agnews,sst-5,yelp-5] \
-translation.prompt_dataset_seed=[0,1,2,3,4]
+bash scripts/run_few_shot_classification.sh [task_lm:distilroberta-base,roberta-large] \
+                                            [dataset:sst-2,yelp-2,mr,cr,agnews,sst-5,yelp-5] \
+                                            [dataset_seed:0,1,2,3,4]
+```
+
+For example, to run on RoBERTa-large for SST-2 with `dataset_seed` of 0, enter the following:
+```
+bash scripts/run_few_shot_classification.sh roberta-large sst-2 0
 ```
 
 ### Text Style Transfer
@@ -82,59 +69,19 @@ python download_tst_classifiers.py --model_name [yelp_train,
                                                  shakespeare_train_100_2]
 ```
 
-#### Yelp
-`tst_gpt2_vocab_positive_5token` is for negative-to-positive transfer, and `tst_gpt2_vocab_negative_5token` is for positive-to-negative.
+After that, run the experiment with the script below, with options for `task_lm`, `direction`, `dataset` and `dataset_seed`. 
+
+For Yelp, `0to1` means negative-to-positive and vice versa. For Shakespeare, `0to1` means old-to-modern. `dataset_seed` only applies to Shakespeare.
 ```
-python run_experiments.py \
-translation.task_name="prompt.tst_gpt2_vocab_[positive,negative]_5token" \
-translation.architecture="gpt2_conditioned_mlp" \
-translation.save_dir=./outputs \
-translation.num_epochs=240 \
-translation.training_mode="sql-onpolicy" \
-translation.num_batches_per_epoch=50 \
-translation.save_frequency=2 \
-translation.reward_old_min=0 \
-translation.reward_old_max=1 \
-translation.reward_shaping_min=-20 \
-translation.reward_shaping_max=80 \
-translation.top_k=50 \
-translation.reward_name="prompted-text-style-transfer" \
-translation.random_seed=2 \
-translation.learning_rate=[1e-4,5e-5] \
-translation.target_learning_rate=1e-3  \
-translation.mlp_input_specific=true \
-translation.mlp_logit_bias=-10 \
-translation.prompt_task_lm=[distilgpt2,gpt2,gpt2-medium,gpt2-large,gpt2-xl] \
-translation.prompt_dataset='yelp' 
+bash run_text_style_transfer.sh [task_lm:distilgpt2,gpt2,gpt2-medium,gpt2-large,gpt2-xl] \
+                                [direction:0to1,1to0] \
+                                [dataset:yelp,shakespeare] \
+                                [dataset_seed:0,1,2]
 ```
 
-#### Shakespeare (100-Shot)
-`tst_gpt2_vocab_positive_5token` is for old-to-modern transfer, and `tst_gpt2_vocab_negative_5token` is for modern-to-old
-
-Select `prompt_dataset_seed` to toggle the training set
+For instance, to run using GPT2-xl for old-to-modern transfer on Shakespeare with `dataset_seed` of 1, enter the following:
 ```
-python run_experiments.py \
-translation.task_name="prompt.tst_gpt2_vocab_positive_5token" \
-translation.architecture="gpt2_conditioned_mlp" \
-translation.save_dir=./outputs \
-translation.num_epochs=240 \
-translation.training_mode="sql-onpolicy" \
-translation.num_batches_per_epoch=50 \
-translation.save_frequency=2 \
-translation.reward_old_min=0 \
-translation.reward_old_max=1 \
-translation.reward_shaping_min=-20 \
-translation.reward_shaping_max=80 \
-translation.top_k=50 \
-translation.reward_name="prompted-text-style-transfer" \
-translation.random_seed=2 \
-translation.learning_rate=5e-5 \
-translation.target_learning_rate=1e-3  \
-translation.mlp_input_specific=true \
-translation.mlp_logit_bias=-10 \
-translation.prompt_task_lm=gpt2-xl \
-translation.prompt_dataset='shakespeare' \
-translation.prompt_dataset_seed=[0,1,2]
+bash run_text_style_transfer.sh gpt2-xl 0to1 shakespeare 1
 ```
 
 #### Evaluation
@@ -150,4 +97,4 @@ And use the evaluation scripts in `evaluation/tst/modules` in the order below
 ```
 generate_prompts.py -> prompted_gpt2.py -> yelp_output_selector.py -> yelp_evaluator.py
 ```
-We will provide more directions for this part soon. Please reach out if you have any questions while using it. 
+We will provide more information on this part soon. Please reach out if you have any questions while using it. 
