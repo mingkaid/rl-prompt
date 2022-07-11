@@ -25,20 +25,20 @@ class YelpEvaluator():
         self.dataset = tst_dataset
         
         # Classifier
-        dataset_clf_basepath = "/emnlp-2022-code/experiments/yelp_sentiment_classifier"
+        dataset_clf_basepath = "/absolute/path/to/rl-prompt/experiments/tst_classifiers"
         dataset_clf_tokenizers = {'yelp': 'bert-base-uncased',
                                   'shakespeare': 'bert-base-uncased',}
-        dataset_clf_paths = {'yelp': dataset_clf_basepath + "/results-bert-base-train-test/checkpoint-8920",
-                             'shakespeare': dataset_clf_basepath + f"/shakespeare-bert-base-uncased-train_test-all-0"}
+        dataset_clf_paths = {'yelp': dataset_clf_basepath + "/yelp-bert-base-uncased-test",
+                             'shakespeare': dataset_clf_basepath + f"/shakespeare-bert-base-uncased-test-all"}
         self.classifier = pipeline("sentiment-analysis",
                                    model=dataset_clf_paths[self.dataset],
                                    tokenizer=dataset_clf_tokenizers[self.dataset],
                                    device=self.device)
         
         # Perplexer
-        dataset_ppl_basepath = "/emnlp-2022-code/evaluation/tst/ppl"
+        dataset_ppl_basepath = "/absolute/path/to/rl-prompt/evaluation/tst/ppl"
         dataset_perplexer_paths = {'yelp': dataset_ppl_basepath + "/gpt2-yelp",
-                                   'shakespeare': dataset_ppl_basepath + "/gpt2-shakespeare-10"}
+                                   'shakespeare': dataset_ppl_basepath + "/gpt2-shakespeare"}
 
         perplexer_path = dataset_perplexer_paths[self.dataset]
         self.perplexer_tokenizer = AutoTokenizer.from_pretrained(perplexer_path)
@@ -88,9 +88,6 @@ class YelpEvaluator():
                    'self_bleu': round(output_df['self_bleu'].mean(), 1)}
         
         print('Comparing with reference...')
-        # print(output_df[(output_df['target_label'] == 'LABEL_0')].shape)
-#         output_df.loc[(output_df['target_label'] == 'LABEL_0'), 'ref'] = pd.Series(pos2neg_refs, index=output_df.index)
-#         output_df.loc[(output_df['target_label'] == 'LABEL_1'), 'ref'] = pd.Series(neg2pos_refs, index=output_df.index)
         output_df['ref'] = pos2neg_refs + neg2pos_refs
         output_df['ref_bleu'] = (output_df
                                  .progress_apply(

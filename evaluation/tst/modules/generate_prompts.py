@@ -1,7 +1,5 @@
 import os
 import sys
-sql_path = '/emnlp-2022-code/'
-sys.path.insert(0, sql_path)
 import torch.nn.functional as F
 from glob import glob
 from tqdm import trange
@@ -11,15 +9,17 @@ import omegaconf
 from sql.utils import ForwardMode
 from transformers import AutoTokenizer
 import fire
+sql_path = '/absolute/path/to/rl-prompt'
+sys.path.insert(0, sql_path)
 
 def generate_prompts(task, ckpt_path_short, device_id, tst_dataset, tst_data_seed): 
     assert task in ['neg2pos', 'pos2neg']
     config = omegaconf.OmegaConf.load(os.path.join(sql_path, "configs/config.yaml"))
     config = config.translation
     if task == 'pos2neg': 
-        config.task_name = "prompt_tst.yelp_gpt2_vocab_negative"
+        config.task_name = "prompt.tst_gpt2_vocab_negative_5token"
     elif task == 'neg2pos': 
-        config.task_name = "prompt_tst.yelp_gpt2_vocab_positive"
+        config.task_name = "prompt.tst_gpt2_vocab_positive_5token"
     config.architecture = "gpt2_conditioned_mlp"
     config.reward_name = None
 #     config.checkpoint_path = os.path.join(sql_path, 'outputs/',

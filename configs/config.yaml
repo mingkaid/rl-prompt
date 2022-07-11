@@ -45,7 +45,7 @@ translation:
     hack_truncate_length_constant: null
     # MLP-specific parameters
     mlp_policy_lm: "distilgpt2"
-    mlp_input_specific: null
+    mlp_input_specific: false
     mlp_logit_bias: 0
     mlp_fluent_prompt: false
     # prompt reward parameters

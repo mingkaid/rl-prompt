@@ -8,8 +8,8 @@ import texar.torch as tx
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from enum import Enum
-from graphviz import Digraph
-from torchmetrics.functional import bleu_score
+# from graphviz import Digraph
+# from torchmetrics.functional import bleu_score
 
 from sql.types import FloatTensor, LongTensor, BatchType
 from typing import Union, Tuple, Dict, Any, Optional, Callable, List, cast
@@ -38,122 +38,122 @@ def get_reward_shaping_func(
     return _shaping_func
 
 
-def compute_sentence_bleu_batch(
-        output_texts: List[List[str]],
-        target_texts: List[List[str]],
-        method: Optional[str] = None,
-) -> List[float]:
-    if method is None:
-        method = "moses"
+# def compute_sentence_bleu_batch(
+#         output_texts: List[List[str]],
+#         target_texts: List[List[str]],
+#         method: Optional[str] = None,
+# ) -> List[float]:
+#     if method is None:
+#         method = "moses"
 
-    if method not in ["moses", "lightning", "accuracy"]:
-        raise ValueError
+#     if method not in ["moses", "lightning", "accuracy"]:
+#         raise ValueError
 
-    if len(output_texts) != len(target_texts):
-        raise ValueError
+#     if len(output_texts) != len(target_texts):
+#         raise ValueError
 
-    if not all([
-            isinstance(output_texts, list),
-            isinstance(target_texts, list),
-            isinstance(output_texts[0], list),
-            isinstance(target_texts[0], list)]):
-        raise TypeError
+#     if not all([
+#             isinstance(output_texts, list),
+#             isinstance(target_texts, list),
+#             isinstance(output_texts[0], list),
+#             isinstance(target_texts[0], list)]):
+#         raise TypeError
 
-    rewards = []
-    for hypo, ref in zip(output_texts, target_texts):
+#     rewards = []
+#     for hypo, ref in zip(output_texts, target_texts):
 
-        if method == "moses":
-            reward = tx.evals.sentence_bleu_moses(
-                references=[ref],
-                hypothesis=hypo)
+#         if method == "moses":
+#             reward = tx.evals.sentence_bleu_moses(
+#                 references=[ref],
+#                 hypothesis=hypo)
 
-        if method == "lightning":
-            reward = bleu_score(
-                # official code for `bleu_score`
-                # probably has wrong type annotations
-                reference_corpus=[[ref]],
-                translate_corpus=[hypo])
-            reward = (reward * 100).item()
+#         if method == "lightning":
+#             reward = bleu_score(
+#                 # official code for `bleu_score`
+#                 # probably has wrong type annotations
+#                 reference_corpus=[[ref]],
+#                 translate_corpus=[hypo])
+#             reward = (reward * 100).item()
 
-        if method == "accuracy":
-            reward = compute_accuracy_scores([ref], [hypo])
-            reward = reward * 100
+#         if method == "accuracy":
+#             reward = compute_accuracy_scores([ref], [hypo])
+#             reward = reward * 100
 
-        rewards.append(reward)
+#         rewards.append(reward)
 
-    return rewards
+#     return rewards
 
 
-def visualize_trajectory(
-        logits: FloatTensor,
-        sample_id: LongTensor,
-        ground_truth_id: LongTensor,
-        id_to_token_map: Dict[int, str],
-        size_string: Optional[str] = None,
-) -> Digraph:
+# def visualize_trajectory(
+#         logits: FloatTensor,
+#         sample_id: LongTensor,
+#         ground_truth_id: LongTensor,
+#         id_to_token_map: Dict[int, str],
+#         size_string: Optional[str] = None,
+# ) -> Digraph:
 
-    if size_string is None:
-        size_string = "7.5,7.5"
+#     if size_string is None:
+#         size_string = "7.5,7.5"
 
-    tokens = list(id_to_token_map.values())
-    cmap = plt.get_cmap("magma")
-    norm = mpl.colors.Normalize(
-        vmin=logits.min(),
-        vmax=logits.max())
+#     tokens = list(id_to_token_map.values())
+#     cmap = plt.get_cmap("magma")
+#     norm = mpl.colors.Normalize(
+#         vmin=logits.min(),
+#         vmax=logits.max())
 
-    def _get_rgb_string(x: FloatTensor) -> str:
-        rgb_tuple = cmap(norm(x.item()))
-        rgb_string_tuple = [str(x) for x in rgb_tuple]
-        return " ".join(rgb_string_tuple)
+#     def _get_rgb_string(x: FloatTensor) -> str:
+#         rgb_tuple = cmap(norm(x.item()))
+#         rgb_string_tuple = [str(x) for x in rgb_tuple]
+#         return " ".join(rgb_string_tuple)
 
-    dot = Digraph(
-        engine="neato",
-        graph_attr={
-            "size": size_string,
-        }
-    )
+#     dot = Digraph(
+#         engine="neato",
+#         graph_attr={
+#             "size": size_string,
+#         }
+#     )
 
-    # for step in range(0, max(sample_id.shape[-1],
-    #                          ground_truth_id.shape[-1])):
-    for step in range(0, sample_id.shape[-1], 0):
-        for index, token in enumerate(tokens):
-            dot.node(
-                name=f"{step}-{token}",
-                label=f"{token}",
-                style="filled,bold",
-                shape="box",
-                pos=f"{step * 1.1},{index + 1}!",
-                color=_get_rgb_string(logits[step, index]),
-            )
-            if index > 0:
-                dot.edge(
-                    f"{step}-{tokens[index - 1]}",
-                    f"{step}-{tokens[index]}",
-                    dir="none")
+#     # for step in range(0, max(sample_id.shape[-1],
+#     #                          ground_truth_id.shape[-1])):
+#     for step in range(0, sample_id.shape[-1], 0):
+#         for index, token in enumerate(tokens):
+#             dot.node(
+#                 name=f"{step}-{token}",
+#                 label=f"{token}",
+#                 style="filled,bold",
+#                 shape="box",
+#                 pos=f"{step * 1.1},{index + 1}!",
+#                 color=_get_rgb_string(logits[step, index]),
+#             )
+#             if index > 0:
+#                 dot.edge(
+#                     f"{step}-{tokens[index - 1]}",
+#                     f"{step}-{tokens[index]}",
+#                     dir="none")
 
-    for step in range(1, sample_id.shape[-1]):
-        last_token_index = cast(int, sample_id[step - 1].item())
-        this_token_index = cast(int, sample_id[step].item())
-        last_token = id_to_token_map[last_token_index]
-        this_token = id_to_token_map[this_token_index]
-        dot.edge(
-            f"{step-1}-{last_token}",
-            f"{step}-{this_token}",
-            penwidth="5.0",
-            color="black")
+#     for step in range(1, sample_id.shape[-1]):
+#         last_token_index = cast(int, sample_id[step - 1].item())
+#         this_token_index = cast(int, sample_id[step].item())
+#         last_token = id_to_token_map[last_token_index]
+#         this_token = id_to_token_map[this_token_index]
+#         dot.edge(
+#             f"{step-1}-{last_token}",
+#             f"{step}-{this_token}",
+#             penwidth="5.0",
+#             color="black")
 
-    for step in range(1, ground_truth_id.shape[-1]):
-        last_token_index = cast(int, ground_truth_id[step - 1].item())
-        this_token_index = cast(int, ground_truth_id[step].item())
-        last_token = id_to_token_map[last_token_index]
-        this_token = id_to_token_map[this_token_index]
-        dot.edge(
-            f"{step-1}-{last_token}",
-            f"{step}-{this_token}",
-            penwidth="5.0",
-            color="blue")
+#     for step in range(1, ground_truth_id.shape[-1]):
+#         last_token_index = cast(int, ground_truth_id[step - 1].item())
+#         this_token_index = cast(int, ground_truth_id[step].item())
+#         last_token = id_to_token_map[last_token_index]
+#         this_token = id_to_token_map[this_token_index]
+#         dot.edge(
+#             f"{step-1}-{last_token}",
+#             f"{step}-{this_token}",
+#             penwidth="5.0",
+#             color="blue")
 
-    return dot
+#     return dot
 
 
 def add_prefix_to_dict_keys_inplace(

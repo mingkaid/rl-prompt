@@ -1,5 +1,5 @@
 import sys
-style_transformer_path = '/emnlp-2022-code/'
+style_transformer_path = 'absolute/path/to/style/transformer'
 sys.path.insert(0, style_transformer_path)
 
 from data import load_dataset

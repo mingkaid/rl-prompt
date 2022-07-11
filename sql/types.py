@@ -1,6 +1,12 @@
 import torch
 import numpy as np
-from typing import Union, List, Dict, Any, TypedDict, NamedTuple
+import sys
+if sys.version_info >= (3, 8):
+    from typing import Union, List, Dict, Any, TypedDict, NamedTuple
+else:
+    from typing import Union, List, Dict, Any, NamedTuple
+    from typing_extensions import TypedDict
+# from typing import Union, List, Dict, Any, TypedDict, NamedTuple
 
 
 # PyTorch Types
