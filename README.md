@@ -12,6 +12,8 @@ We will keep updating the codebase to be easier to use and repurpose for your ow
 * Compared to typical soft prompts, our discrete prompts are lightweight, interpretable, and transferrable across model types (e.g., RoBERTa to GPT-2) and sizes (e.g., small to large)
 * Check out more analyses at our paper [here](https://arxiv.org/abs/2205.12548)
 
+![](figure.png)
+
 ## Setting Up (Minimal)
 
 To run the codebase, we provide a minimal set of required configurations: 
