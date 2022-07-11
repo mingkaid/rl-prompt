@@ -25,13 +25,13 @@ Install other libraries by
 pip install -r requirements-minimal.txt
 ```
 
-## Setting Up (Reproducing Results)
+## Setting Up (Full)
 
-To exactly reproduce our environment, use
+To fully reproduce our environment, use
 * Python == 3.8
 * PyTorch == 1.10.1
 
-Install the full dependencies by 
+Install all dependencies by 
 ```
 pip install -r requirements-full.txt
 ```
