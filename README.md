@@ -1,8 +1,10 @@
-# RLPrompt: Optimizing Discrete Text Prompts With Reinforcement Learning
+# RL Prompt
 
-This repo contains the code for reproducing the RL-based discrete prompt optimization results described in [this paper](https://arxiv.org/abs/2205.12548). 
+This repo contains the code of the discrete prompt optimization framework described in the paper \
+**[RLPrompt: Optimizing Discrete Text Prompts With Reinforcement Learning](https://arxiv.org/abs/2205.12548)** \
+Mingkai Deng*,   Jianyu Wang*,   Cheng-Ping Hsieh* (equal contribution),   Yihan Wang,   Han Guo,   Tianmin Shu,   Meng Song,   Eric P. Xing,   Zhiting Hu 
 
-We will keep updating the codebase to be easier to use and repurpose for your own tasks, so please stay tuned by starring or watching our repo! 
+We will keep updating the codebase for easier usage and adaptation for your own tasks, so please stay tuned by starring or watching our repo! 
 
 ## Getting Started
 
@@ -44,7 +46,7 @@ Below are the commands we use to run the experiments for 1) few-shot text classi
 
 ### Few-Shot Text Classification
 The script below runs a 16-shot classification experiment, with options for `task_lm` and `dataset`.
-For each dataset, we provide 5 different 16-shot training sets, toggled by `seed`
+For each dataset, we provide 5 different 16-shot training sets, toggled by `dataset_seed`
 ```
 bash scripts/run_few_shot_classification.sh [task_lm:distilroberta-base,roberta-large] \
                                             [dataset:sst-2,yelp-2,mr,cr,agnews,sst-5,yelp-5] \
