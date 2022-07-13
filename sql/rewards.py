@@ -520,17 +520,17 @@ class PromptedClassificationReward(object):
         elif 'bert' in self.task_lm: # Masked LM
             self._tokenizer = AutoTokenizer.from_pretrained(self.task_lm)
             self._generator = AutoModelForMaskedLM.from_pretrained(self.task_lm).to(self.device)
-
-        self._templates = self.load_templates() # prompt templates
-        self._inputs = self._load_inputs()
+        
         self._task_name = self.dataset
-
         if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
             self.num_classes = 2
         elif self._task_name == 'agnews':
             self.num_classes = 4
         elif self._task_name in ['sst-5', 'yelp-5']:
             self.num_classes = 5
+
+        self._templates = self.load_templates() # prompt templates
+        self._inputs = self._load_inputs()
             
         self._inputs_idx = {(idx, 'LABEL_' + str(i)): 0 \
                             for i in range(self.num_classes) \
@@ -622,13 +622,7 @@ class PromptedClassificationReward(object):
         inputs = []
         for i, label in enumerate(target_labels): # input sent. per batch
             idx = self._inputs_idx[(mode, label)] # placeholder
-            if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-                if mode == 'train':
-                    inputs.append([self._inputs[(mode, 'LABEL_1')][idx], self._inputs[(mode, 'LABEL_0')][idx]])
-                elif mode == 'infer':
-                    inputs.append([self._inputs[(mode, 'LABEL_' + str(j))][idx] for j in range(self.num_classes)])
-            else:
-                inputs.append([self._inputs[(mode, 'LABEL_' + str(j))][idx] for j in range(self.num_classes)])
+            inputs.append([self._inputs[(mode, 'LABEL_' + str(j))][idx] for j in range(self.num_classes)])
                 
             idx += 1
             idx %= len(self._inputs[(mode, 'LABEL_0')])
@@ -709,23 +703,25 @@ class PromptedClassificationReward(object):
                 # second predicted prob.     
                 pred_sec_prob = [torch.topk(class_probs[i], k=2, dim=-1).values[:,1] for i in range(self.num_classes)]       
                 # reward 
-                rewards = [torch.where(class_prob[i] - pred_best_prob[i] >= 0, 2 * (pred_best_prob[i] - pred_sec_prob[i]), 1.8*(class_prob[i] - pred_best_prob[i])) for i in range(self.num_classes)] 
-                average_reward = torch.mean(rewards[0] + rewards[1] + rewards[2] + rewards[3]) * 25 
-                # visualization
+                rewards_ = [torch.where(class_prob[i] - pred_best_prob[i] >= 0, 2 * (pred_best_prob[i] - pred_sec_prob[i]), 1.8*(class_prob[i] - pred_best_prob[i])) for i in range(self.num_classes)] 
+                # visualization, the constant might only be used for visualization
                 if self._task_name == 'agnews':
-                    quantities_to_log["avg_world_reward"].append(torch.mean(rewards[0]).item())
-                    quantities_to_log["avg_sports_reward"].append(torch.mean(rewards[1]).item())
-                    quantities_to_log["avg_business_reward"].append(torch.mean(rewards[2]).item())
-                    quantities_to_log["avg_tech_reward"].append(torch.mean(rewards[3]).item())
+                    average_reward = torch.mean(rewards_[0] + rewards_[1] + rewards_[2] + rewards_[3]) * 25
+                    quantities_to_log["avg_world_reward"].append(torch.mean(rewards_[0]).item())
+                    quantities_to_log["avg_sports_reward"].append(torch.mean(rewards_[1]).item())
+                    quantities_to_log["avg_business_reward"].append(torch.mean(rewards_[2]).item())
+                    quantities_to_log["avg_tech_reward"].append(torch.mean(rewards_[3]).item())
                 elif self._task_name in ['sst-5', 'yelp-5']:
-                    quantities_to_log["avg_1_reward"].append(torch.mean(rewards[0]).item())
-                    quantities_to_log["avg_2_reward"].append(torch.mean(rewards[1]).item())
-                    quantities_to_log["avg_3_reward"].append(torch.mean(rewards[2]).item())
-                    quantities_to_log["avg_4_reward"].append(torch.mean(rewards[3]).item())
-                    quantities_to_log["avg_5_reward"].append(torch.mean(rewards[4]).item())
+                    average_reward = torch.mean(rewards_[0] + rewards_[1] + rewards_[2] + rewards_[3] + rewards_[4]) * 20
+                    quantities_to_log["avg_1_reward"].append(torch.mean(rewards_[0]).item())
+                    quantities_to_log["avg_2_reward"].append(torch.mean(rewards_[1]).item())
+                    quantities_to_log["avg_3_reward"].append(torch.mean(rewards_[2]).item())
+                    quantities_to_log["avg_4_reward"].append(torch.mean(rewards_[3]).item())
+                    quantities_to_log["avg_5_reward"].append(torch.mean(rewards_[4]).item())
                 elif self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-                    quantities_to_log["avg_neg_reward"].append(torch.mean(rewards[0]).item())
-                    quantities_to_log["avg_pos_reward"].append(torch.mean(rewards[1]).item())
+                    average_reward = torch.mean(rewards_[0] + rewards_[1]) * 50
+                    quantities_to_log["avg_neg_reward"].append(torch.mean(rewards_[0]).item())
+                    quantities_to_log["avg_pos_reward"].append(torch.mean(rewards_[1]).item())
 
                 quantities_to_log["avg_reward"].append(average_reward.item())
 
