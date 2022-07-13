@@ -75,7 +75,7 @@ After that, run the experiment with the script below, with options for `task_lm`
 
 For Yelp, `0to1` means negative-to-positive and vice versa. For Shakespeare, `0to1` means old-to-modern. `dataset_seed` only applies to Shakespeare.
 ```
-bash run_text_style_transfer.sh [task_lm:distilgpt2,gpt2,gpt2-medium,gpt2-large,gpt2-xl] \
+bash scripts/run_text_style_transfer.sh [task_lm:distilgpt2,gpt2,gpt2-medium,gpt2-large,gpt2-xl] \
                                 [direction:0to1,1to0] \
                                 [dataset:yelp,shakespeare] \
                                 [dataset_seed:0,1,2]
@@ -83,7 +83,7 @@ bash run_text_style_transfer.sh [task_lm:distilgpt2,gpt2,gpt2-medium,gpt2-large,
 
 For instance, to run using GPT2-xl for old-to-modern transfer on Shakespeare with `dataset_seed` of 1, enter the following:
 ```
-bash run_text_style_transfer.sh gpt2-xl 0to1 shakespeare 1
+bash scripts/run_text_style_transfer.sh gpt2-xl 0to1 shakespeare 1
 ```
 
 #### Evaluation
