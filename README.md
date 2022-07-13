@@ -65,10 +65,10 @@ Like for few-shot classification, we provide 3 different training sets and their
 
 You can download the training style classifiers by running the script below
 ```
-python download_tst_classifiers.py --model_name [yelp_train,
-                                                 shakespeare_train_100_0,
-                                                 shakespeare_train_100_1,
-                                                 shakespeare_train_100_2]
+python download_tst_classifiers.py --model_name [yelp-train,
+                                                 shakespeare-train-100-0,
+                                                 shakespeare-train-100-1,
+                                                 shakespeare-train-100-2]
 ```
 
 After that, run the experiment with the script below, with options for `task_lm`, `direction`, `dataset` and `dataset_seed`. 
