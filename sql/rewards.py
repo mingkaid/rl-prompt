@@ -653,12 +653,7 @@ class PromptedClassificationReward(object):
                 logits = self._generator(
                     input_ids=encoded_input.input_ids.to(device), 
                     ).logits
-            else:
-                logits = self._generator(
-                    input_ids=encoded_input.input_ids.to(device), 
-                    attention_mask=encoded_input.attention_mask.to(device),
-                    decoder_input_ids=None
-                    ).logits 
+           
             logits = logits[range(batch_size), seq_len] 
 
         return logits 
