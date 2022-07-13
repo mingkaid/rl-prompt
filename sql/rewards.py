@@ -759,23 +759,13 @@ class PromptedClassificationReward(object):
                 rewards.append(average_reward)
 
             if mode == 'infer': # val score
+                acc_list = [torch.tensor(1) if pred_labels[i] == i else torch.tensor(0) for i in range(self.num_classes)]
                 if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']: # TODO
-                    pos_acc = torch.tensor(1) if pred_labels[1] == 1 else torch.tensor(0)
-                    neg_acc = torch.tensor(1) if pred_labels[0] == 0 else torch.tensor(0)
-                    reward = torch.tensor((pos_acc+neg_acc)/2).float()
-                elif self._task_name == 'agnews':
-                    world_acc = torch.tensor(1) if pred_labels[0] == 0 else torch.tensor(0)
-                    sports_acc = torch.tensor(1) if pred_labels[1] == 1 else torch.tensor(0)
-                    business_acc = torch.tensor(1) if pred_labels[2] == 2 else torch.tensor(0)
-                    tech_acc = torch.tensor(1) if pred_labels[3] == 3 else torch.tensor(0)         
-                    reward = torch.tensor((world_acc+sports_acc+business_acc+tech_acc)/4).float() # To be visualized     
+                    reward = torch.tensor((acc_list[0]+acc_list[1])/2).float()
+                elif self._task_name == 'agnews':      
+                    reward = torch.tensor((acc_list[0]+acc_list[1]+acc_list[2]+acc_list[3])/4).float() # To be visualized     
                 elif self._task_name in ['sst-5', 'yelp-5']:
-                    acc_1 = torch.tensor(1) if pred_labels[0] == 0 else torch.tensor(0)
-                    acc_2 = torch.tensor(1) if pred_labels[1] == 1 else torch.tensor(0)
-                    acc_3 = torch.tensor(1) if pred_labels[2] == 2 else torch.tensor(0)
-                    acc_4 = torch.tensor(1) if pred_labels[3] == 3 else torch.tensor(0)
-                    acc_5 = torch.tensor(1) if pred_labels[4] == 4 else torch.tensor(0)
-                    reward = torch.tensor((acc_1+acc_2+acc_3+acc_4+acc_5)/5).float() # To be visualized
+                    reward = torch.tensor((acc_list[0]+acc_list[1]+acc_list[2]+acc_list[3]+acc_list[4])/5).float() # To be visualized
                 
                 rewards.append(reward)
                 quantities_to_log["reward"].append(reward.item()) 
