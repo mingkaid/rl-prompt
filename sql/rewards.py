@@ -500,7 +500,6 @@ class PromptedClassificationReward(object):
             prompt_dataset_basepath: str = '.',
             # Classification-specific parameters
             clf_kshot: int = 16,
-            clf_num_classes: int = 2,
             **kwargs
     ) -> None:
 
@@ -512,271 +511,100 @@ class PromptedClassificationReward(object):
         else:
             self.dataset_basepath = prompt_dataset_basepath
         self.kshot = clf_kshot
-        self.num_classes = clf_num_classes
         self.task_lm = prompt_task_lm
         print('Task LM:', self.task_lm)
         if 'gpt' in self.task_lm: # left-to-right LM
             self._tokenizer = AutoTokenizer.from_pretrained(self.task_lm, pad_token='<|endoftext|>')
             self._generator = GPT2LMHeadModel.from_pretrained(self.task_lm).to(self.device)
             self._generator.config.pad_token_id = self._tokenizer.pad_token_id
-        elif 'bert' in self.task_lm: # MLM
+        elif 'bert' in self.task_lm: # Masked LM
             self._tokenizer = AutoTokenizer.from_pretrained(self.task_lm)
             self._generator = AutoModelForMaskedLM.from_pretrained(self.task_lm).to(self.device)
 
-        self._templates = self.load_templates()
+        self._templates = self.load_templates() # prompt templates
         self._inputs = self._load_inputs()
-        task_name = self.dataset
-        if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-            self._inputs_idx = {('train', 'LABEL_0'): 0, 
-                                ('train', 'LABEL_1'): 0,
-                                ('infer', 'LABEL_0'): 0,
-                                ('infer', 'LABEL_1'): 0}
-        elif task_name == 'agnews':
-            self._inputs_idx = {('train', 'LABEL_0'): 0,
-                                ('train', 'LABEL_1'): 0,
-                                ('train', 'LABEL_2'): 0,
-                                ('train', 'LABEL_3'): 0,
-                                ('infer', 'LABEL_0'): 0,
-                                ('infer', 'LABEL_1'): 0,
-                                ('infer', 'LABEL_2'): 0,
-                                ('infer', 'LABEL_3'): 0
-                                }
-        elif task_name in ['sst-5', 'yelp-5']:
-            self._inputs_idx = {('train', 'LABEL_0'): 0, 
-                                ('train', 'LABEL_1'): 0,
-                                ('train', 'LABEL_2'): 0,
-                                ('train', 'LABEL_3'): 0,
-                                ('train', 'LABEL_4'): 0,
-                                ('infer', 'LABEL_0'): 0,
-                                ('infer', 'LABEL_1'): 0,
-                                ('infer', 'LABEL_2'): 0,
-                                ('infer', 'LABEL_3'): 0,
-                                ('infer', 'LABEL_4'): 0,
-                                }
+        self._task_name = self.dataset
+
+        if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
+            self.num_classes = 2
+        elif self._task_name == 'agnews':
+            self.num_classes = 4
+        elif self._task_name in ['sst-5', 'yelp-5']:
+            self.num_classes = 5
+            
+        self._inputs_idx = {(idx, 'LABEL_' + str(i)): 0 \
+                            for i in range(self.num_classes) \
+                            for idx in ['train', 'infer']}
 
         self._counter = 0
-        if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-            self.pos_verbalizer_candidate = ['\u0120positive', '\u0120great'   ,'\u0120good', '\u0120wonderful', '\u0120delicious', '\u0120dog', '\u0120cat', '\u0120terrible', '\u0120yes']
-            self.neg_verbalizer_candidate = ['\u0120negative', '\u0120terrible','\u0120bad' , '\u0120bad', '\u0120bad', '\u0120cat', '\u0120dog', '\u0120great', '\u0120no']
-            self.pos_verbalizer_candidate_nospace = ['postive', 'great', 'good', 'wonderful']
-            self.neg_verbalizer_candidate_nospace = ['negative', 'terrible', 'bad', 'bad']
-            self.pos_verbalizer = self.pos_verbalizer_candidate[1]
-            self.neg_verbalizer = self.neg_verbalizer_candidate[1]
-        
-            self.pos_id = self._tokenizer.convert_tokens_to_ids(self.pos_verbalizer)
-            self.neg_id = self._tokenizer.convert_tokens_to_ids(self.neg_verbalizer)
-        elif task_name == 'agnews': # news topic classification dataset (news articles)
-            self.world_verbalizer = ['\u0120Global', 'world', 'World']
-            self.sports_verbalizer = ['\u0120Athletics', 'sport', 'Sports']
-            self.business_verbalizer = ['\u0120Finance', 'business', 'Business']
-            self.technology_verbalizer = ['\u0120Technology', 'technology', 'Tech']
-            
-            self.world_id = self._tokenizer.convert_tokens_to_ids(self.world_verbalizer[0])
-            self.sports_id = self._tokenizer.convert_tokens_to_ids(self.sports_verbalizer[0])
-            self.business_id = self._tokenizer.convert_tokens_to_ids(self.business_verbalizer[0])
-            self.technology_id = self._tokenizer.convert_tokens_to_ids(self.technology_verbalizer[0])
-        elif task_name in ['sst-5', 'yelp-5']:
-            self.verbalizer_1 = '\u0120terrible'
-            self.verbalizer_2 = '\u0120bad'
-            self.verbalizer_3 = '\u0120okay'
-            self.verbalizer_4 = '\u0120good'
-            self.verbalizer_5 = '\u0120great'
-
-            self.id_1 = self._tokenizer.convert_tokens_to_ids(self.verbalizer_1)
-            self.id_2 = self._tokenizer.convert_tokens_to_ids(self.verbalizer_2)
-            self.id_3 = self._tokenizer.convert_tokens_to_ids(self.verbalizer_3)
-            self.id_4 = self._tokenizer.convert_tokens_to_ids(self.verbalizer_4)
-            self.id_5 = self._tokenizer.convert_tokens_to_ids(self.verbalizer_5)
+        if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
+            self.verbalizers = ['\u0120terrible', '\u0120great'] # num_classes
+        elif self._task_name == 'agnews': 
+            self.verbalizers = ['World', 'Sports', 'Business', 'Tech'] # num_classes
+        elif self._task_name in ['sst-5', 'yelp-5']:
+            self.verbalizers = ['\u0120terrible', '\u0120bad', '\u0120okay', '\u0120good', '\u0120great'] # num_classes
+        self.verbalizer_ids = [self._tokenizer.convert_tokens_to_ids(verbalizer) for verbalizer in self.verbalizers]
 
     def load_templates(self) -> List[str]:
-        self._task_name = self.dataset
         if 'bert' not in self.task_lm:
             # Template for left-to-right LMs like GPT-2
-            temp_template = "{sentence_1} {prompt}" # TODO
+            temp_template = "{sentence_1} {prompt}" 
         else:
             if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr', 'sst-5', 'yelp-5']:
                 temp_template = "{sentence_1} {prompt} <mask> ."            
-            elif self._task_name in ['agnews']: # TODO
+            elif self._task_name in ['agnews']: 
                 temp_template = "<mask> {prompt} {sentence_1}"
 
         return [temp_template]
-    
-    def _load_inputs(self) -> Dict[Tuple[Any], List[str]]: 
-        inputs = {}
-        
-        assert self.dataset_seed in [0, 1, 2, 3, 4]
-        assert self.kshot in [16]
-        task_name = self.dataset
-        if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-            train_pos_dict, train_neg_dict, dev_pos_dict, dev_neg_dict = self._load_few_shot_examples()
-        elif task_name == 'agnews':
-            (train_world_dict, train_sports_dict, train_business_dict, train_technology_dict, 
-            dev_world_dict, dev_sports_dict, dev_business_dict, dev_technology_dict) = self._load_few_shot_examples()
-        elif task_name in ['sst-5', 'yelp-5']:
-            (train_1_dict, train_2_dict, train_3_dict, train_4_dict, train_5_dict, 
-            dev_1_dict, dev_2_dict, dev_3_dict, dev_4_dict, dev_5_dict) = self._load_few_shot_examples()
-        
-        if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-            inputs[('train', 'LABEL_0')] = list(train_pos_dict.keys())#sentences_train_1[:kshot]
-            inputs[('train', 'LABEL_1')] = list(train_neg_dict.keys())#sentences_train_0[:kshot]
-            inputs[('infer', 'LABEL_0')] = list(dev_pos_dict.keys())#sentences_train_1[-kshot:]
-            inputs[('infer', 'LABEL_1')] = list(dev_neg_dict.keys())#sentences_train_0[-kshot:]
-            inputs['train'] = [(text,1) for text in list(train_pos_dict.keys())] + [(text, 0) for text in list(train_neg_dict.keys())]
-            inputs['infer'] = [(text,1) for text in list(dev_pos_dict.keys())] + [(text, 0) for text in list(dev_neg_dict.keys())]
-            random.Random(0).shuffle(inputs['train'])
-            random.Random(0).shuffle(inputs['infer'])
-        elif task_name == 'agnews': # news topic classification
-            inputs[('train', 'LABEL_0')] = list(train_world_dict.keys())#sentences_train_1[:kshot]
-            inputs[('train', 'LABEL_1')] = list(train_sports_dict.keys())#sentences_train_0[:kshot]
-            inputs[('train', 'LABEL_2')] = list(train_business_dict.keys())#sentences_train_1[:kshot]
-            inputs[('train', 'LABEL_3')] = list(train_technology_dict.keys())#sentences_train_0[:kshot]
-            
-            inputs[('infer', 'LABEL_0')] = list(dev_world_dict.keys())#sentences_train_1[:kshot]
-            inputs[('infer', 'LABEL_1')] = list(dev_sports_dict.keys())#sentences_train_0[:kshot]
-            inputs[('infer', 'LABEL_2')] = list(dev_business_dict.keys())#sentences_train_1[:kshot]
-            inputs[('infer', 'LABEL_3')] = list(dev_technology_dict.keys())
-
-            inputs['train'] = [(text, 0) for text in list(train_world_dict.keys())] + [(text, 1) for text in list(train_sports_dict.keys())] + [(text, 2) for text in list(train_business_dict.keys())] + [(text, 3) for text in list(train_technology_dict.keys())]
-            inputs['infer'] = [(text, 0) for text in list(dev_world_dict.keys())] + [(text, 1) for text in list(dev_sports_dict.keys())] + [(text, 2) for text in list(dev_business_dict.keys())] + [(text, 3) for text in list(dev_technology_dict.keys())]
-            random.Random(0).shuffle(inputs['train'])
-            random.Random(0).shuffle(inputs['infer'])
-        elif task_name in ['sst-5', 'yelp-5']:
-            inputs[('infer', 'LABEL_0')] = list(dev_1_dict.keys())#sentences_train_1[:kshot]
-            inputs[('infer', 'LABEL_1')] = list(dev_2_dict.keys())#sentences_train_0[:kshot]
-            inputs[('infer', 'LABEL_2')] = list(dev_3_dict.keys())#sentences_train_1[:kshot]
-            inputs[('infer', 'LABEL_3')] = list(dev_4_dict.keys())
-            inputs[('infer', 'LABEL_4')] = list(dev_5_dict.keys())
-
-            inputs[('train', 'LABEL_0')] = list(train_1_dict.keys())#sentences_train_1[:kshot]
-            inputs[('train', 'LABEL_1')] = list(train_2_dict.keys())#sentences_train_0[:kshot]
-            inputs[('train', 'LABEL_2')] = list(train_3_dict.keys())#sentences_train_1[:kshot]
-            inputs[('train', 'LABEL_3')] = list(train_4_dict.keys())
-            inputs[('train', 'LABEL_4')] = list(train_5_dict.keys())
-
-            inputs['train'] = [(text, 0) for text in list(train_1_dict.keys())] + [(text, 1) for text in list(train_2_dict.keys())] + [(text, 2) for text in list(train_3_dict.keys())] + [(text, 3) for text in list(train_4_dict.keys())] + [(text, 4) for text in list(train_5_dict.keys())]
-            inputs['infer'] = [(text, 0) for text in list(dev_1_dict.keys())] + [(text, 1) for text in list(dev_2_dict.keys())] + [(text, 2) for text in list(dev_3_dict.keys())] + [(text, 3) for text in list(dev_4_dict.keys())] + [(text, 4) for text in list(dev_5_dict.keys())]
-            random.Random(0).shuffle(inputs['train'])
-            random.Random(0).shuffle(inputs['infer'])
-        
-        return inputs
 
     def _load_few_shot_examples(self):
         base_path = os.path.join(self.dataset_basepath, f'prompt_tasks/few-shot-classification/{str(self.kshot)}-shot/')
-        seed_dic = {0:'16-100', 1:'16-13', 2:'16-21', 3:'16-42', 4:'16-87'}
+        seed_dic = {0:'16-100', 1:'16-13', 2:'16-21', 3:'16-42', 4:'16-87'} # TODO
         
         dataset_path = os.path.join(base_path, self.dataset, seed_dic[self.dataset_seed])
         train_tsv = os.path.join(dataset_path, 'train.tsv')
         dev_tsv = os.path.join(dataset_path, 'dev.tsv')
-        task_name = self.dataset
-        if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-            # read train, binary sentiment at first
-            train_pos_dict = {}
-            train_neg_dict = {}
-            # read dev, SST at first
-            dev_pos_dict = {}
-            dev_neg_dict = {}
-        elif task_name == 'agnews':
-            train_world_dict = {}
-            train_sports_dict = {}
-            train_business_dict = {}
-            train_technology_dict = {}
-
-            dev_world_dict = {}
-            dev_sports_dict = {}
-            dev_business_dict = {}
-            dev_technology_dict = {}
-        elif task_name in ['sst-5', 'yelp-5']:
-            train_5_dict = {}
-            train_4_dict = {}
-            train_3_dict = {}
-            train_2_dict = {}
-            train_1_dict = {}
-            
-            dev_5_dict = {}
-            dev_4_dict = {}
-            dev_3_dict = {}
-            dev_2_dict = {}
-            dev_1_dict = {}
+        # our loaded data cache
+        train_dicts = [{} for _ in range(self.num_classes)] # num_classes
+        dev_dicts = [{} for _ in range(self.num_classes)]
 
         # loading train examples
         with open(train_tsv, 'r') as f:
             train = f.readlines()
-        for i,line in enumerate(train):
-            if i==0:
+        for i, line in enumerate(train):
+            if i == 0: # skip first line
                 continue
             line = line.strip('\n')
-            
             label = int(line.strip('\n').split('\t')[1])
-            text = line.split('\t')[0] # single sentence
-            if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-                if label == 0:
-                    train_neg_dict[text] = label
-                elif label == 1:
-                    train_pos_dict[text] = label
-            elif task_name == 'agnews':
-                if label == 0:
-                    train_world_dict[text] = label
-                elif label == 1:
-                    train_sports_dict[text] = label
-                elif label == 2:
-                    train_business_dict[text] = label
-                elif label == 3:
-                    train_technology_dict[text] = label
-            elif task_name in ['sst-5', 'yelp-5']:
-                if label == 0:
-                    train_1_dict[text] = label
-                elif label == 1:
-                    train_2_dict[text] = label
-                elif label == 2:
-                    train_3_dict[text] = label
-                elif label == 3:
-                    train_4_dict[text] = label
-                elif label == 4:
-                    train_5_dict[text] = label
+            text = line.split('\t')[0] # single sent.
+            train_dicts[label][text] = label 
 
         # loading dev examples
         with open(dev_tsv, 'r') as f:
             dev = f.readlines()
-        for i,line in enumerate(dev):
-            if i==0:
+        for i, line in enumerate(dev):
+            if i == 0:
                 continue
             line = line.strip('\n')
-            
             label = int(line.strip('\n').split('\t')[1])
             text = line.split('\t')[0] 
-
-            if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-                if label == 0:
-                    dev_neg_dict[text] = label
-                elif label == 1:
-                    dev_pos_dict[text] = label
-            elif task_name == 'agnews':
-                if label == 0:
-                    dev_world_dict[text] = label
-                elif label == 1:
-                    dev_sports_dict[text] = label
-                elif label == 2:
-                    dev_business_dict[text] = label
-                elif label == 3:
-                    dev_technology_dict[text] = label
-            elif task_name in ['sst-5', 'yelp-5']:
-                if label == 0:
-                    dev_1_dict[text] = label
-                elif label == 1:
-                    dev_2_dict[text] = label
-                elif label == 2:
-                    dev_3_dict[text] = label
-                elif label == 3:
-                    dev_4_dict[text] = label
-                elif label == 4:
-                    dev_5_dict[text] = label
+            dev_dicts[label][text] = label 
                     
-        if task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-            return train_pos_dict, train_neg_dict, dev_pos_dict, dev_neg_dict # dict: "text": label
-        elif task_name == 'agnews':
-            return train_world_dict, train_sports_dict, train_business_dict, train_technology_dict, dev_world_dict, dev_sports_dict, dev_business_dict, dev_technology_dict
-        elif task_name in ['sst-5', 'yelp-5']:
-            return train_1_dict, train_2_dict, train_3_dict, train_4_dict, train_5_dict, dev_1_dict, dev_2_dict, dev_3_dict, dev_4_dict, dev_5_dict
+        return train_dicts, dev_dicts
+
+    def _load_inputs(self) -> Dict[Tuple[Any], List[str]]: 
+        inputs = {}
+        assert self.dataset_seed in [0, 1, 2, 3, 4]
+        train_dicts, dev_dicts = self._load_few_shot_examples() # examples dict (sentence - string, label - int)
+
+        for class_idx in range(self.num_classes):
+            inputs[('train', 'LABEL_'+str(class_idx))] = list(train_dicts[class_idx].keys())
+            inputs[('infer', 'LABEL_'+str(class_idx))] = list(dev_dicts[class_idx].keys())
+        inputs['train'] = [(text, class_idx) for text in list(train_dicts[class_idx].keys()) for class_idx in range(self.num_classes)]
+        inputs['infer'] = [(text, class_idx) for text in list(dev_dicts[class_idx].keys()) for class_idx in range(self.num_classes)]
+        random.Random(0).shuffle(inputs['train'])
+        random.Random(0).shuffle(inputs['infer'])
+        return inputs # full train/val data
 
     def _convert_tokens_to_string(self, tokens: List[str]) -> List[str]: 
         return [self._tokenizer.convert_tokens_to_string(s.split())
@@ -787,63 +615,27 @@ class PromptedClassificationReward(object):
         return [
             template.format(sentence_1=s, prompt=p) for s_1, p
             in zip(source_strings, prompt_strings) for s in s_1
-        ], 0
+        ], 0 # TODO
 
     def _get_few_shot_inputs(self, mode: str, target_labels: List[str], kshot: int): 
-        # per batch
+        # per batch (based on _load_inputs)
         inputs = []
-        self._task_name = self.dataset
-        if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-            p_data = self._inputs[(mode, 'LABEL_0')]
-            n_data = self._inputs[(mode, 'LABEL_1')]
-        elif self._task_name == 'agnews':
-            world_data = self._inputs[(mode, 'LABEL_0')]
-            sports_data = self._inputs[(mode, 'LABEL_1')]
-            business_data = self._inputs[(mode, 'LABEL_2')]
-            technology_data = self._inputs[(mode, 'LABEL_3')]
-        elif self._task_name in ['sst-5', 'yelp-5']:
-            data_1 = self._inputs[(mode, 'LABEL_0')]
-            data_2 = self._inputs[(mode, 'LABEL_1')]
-            data_3 = self._inputs[(mode, 'LABEL_2')]
-            data_4 = self._inputs[(mode, 'LABEL_3')]
-            data_5 = self._inputs[(mode, 'LABEL_4')]
-
-        for i, label in enumerate(target_labels): # current input per batch
-            idx = self._inputs_idx[(mode, label)] 
+        for i, label in enumerate(target_labels): # input sent. per batch
+            idx = self._inputs_idx[(mode, label)] # placeholder
             if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
                 if mode == 'train':
-                    inputs.append([p_data[idx], n_data[idx]])
+                    inputs.append([self._inputs[(mode, 'LABEL_1')][idx], self._inputs[(mode, 'LABEL_0')][idx]])
                 elif mode == 'infer':
-                    inputs.append([p_data[idx], n_data[idx]])
-            elif self._task_name == 'agnews':
-                if mode == 'train':
-                    inputs.append([world_data[idx], sports_data[idx], business_data[idx], technology_data[idx]])
-                elif mode == 'infer':
-                    inputs.append([world_data[idx], sports_data[idx], business_data[idx], technology_data[idx]])
-            elif self._task_name in ['sst-5', 'yelp-5']:
-                inputs.append([data_1[idx], data_2[idx], data_3[idx], data_4[idx], data_5[idx]])
+                    inputs.append([self._inputs[(mode, 'LABEL_' + str(j))][idx] for j in range(self.num_classes)])
+            else:
+                inputs.append([self._inputs[(mode, 'LABEL_' + str(j))][idx] for j in range(self.num_classes)])
                 
             idx += 1
-            if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-                idx %= len(p_data)
-            elif self._task_name == 'agnews':
-                idx %= len(world_data)
-            elif self._task_name in ['sst-5', 'yelp-5']:
-                idx %= len(data_1)
-
+            idx %= len(self._inputs[(mode, 'LABEL_0')])
             if idx == 0:
-                random.Random(0).shuffle(self._inputs[(mode, 'LABEL_0')])
-                random.Random(0).shuffle(self._inputs[(mode, 'LABEL_1')])
-                if self._task_name == 'agnews':
-                    random.Random(0).shuffle(self._inputs[(mode, 'LABEL_2')])
-                    random.Random(0).shuffle(self._inputs[(mode, 'LABEL_3')])
-                elif self._task_name in ['sst-5', 'yelp-5']:
-                    random.Random(0).shuffle(self._inputs[(mode, 'LABEL_2')])
-                    random.Random(0).shuffle(self._inputs[(mode, 'LABEL_3')])
-                    random.Random(0).shuffle(self._inputs[(mode, 'LABEL_4')])
-
-            self._inputs_idx[(mode, label)] = idx
-        
+                for k in range(self.num_classes):
+                    random.Random(0).shuffle(self._inputs[(mode, 'LABEL_' + str(k))])
+            self._inputs_idx[(mode, label)] = idx 
         return inputs
 
     def _get_probs(self, texts, prompt_length=0, locations = 0):
@@ -857,12 +649,7 @@ class PromptedClassificationReward(object):
                 seq_len = seq_len - 2
         elif self._task_name == 'agnews':
             seq_len = torch.tensor([1 for _ in range(batch_size)])
-            '''
-            seq_len = torch.ne(encoded_input.input_ids, self._tokenizer.pad_token_id).sum(-1) - 1
-            if 'bert' in self.LM_type.lower():
-                seq_len = seq_len - 2
-            '''
-        with torch.no_grad():
+        with torch.no_grad(): # pay attention to special token \u0120
             if 'bert' in self.task_lm: # MLM, <s>, <\s>
                 logits = self._generator(
                     input_ids=encoded_input.input_ids.to(device), 
@@ -890,418 +677,85 @@ class PromptedClassificationReward(object):
         prompt_strings = self._convert_tokens_to_string(prompts)
         prompt_length = len(prompts[0].split())
         formatted_prompts, locations = self._format_prompts(source_strings, prompt_strings)
-
         probs = self._get_probs(formatted_prompts, prompt_length, locations)
         
         rewards: List[FloatTensor] = []
         input_rewards: Dict(str, List(float)) = defaultdict(list)
         quantities_to_log: Dict[str, List[FloatTensor]] = defaultdict(list)
-        if self._task_name == 'agnews' and mode == 'train': # batch size
-            world_index = [i * 4 for i in range(len(prompts))]
-            sports_index = [i + 1 for i in world_index]
-            business_index = [i + 2 for i in world_index]
-            technology_index = [i + 3 for i in world_index]
-        elif self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-            pos_index = [i * 2 for i in range(len(prompts))]
-            neg_index = [i + 1 for i in pos_index]
-        elif self._task_name in ['yelp-5', 'sst-5']:
-            #print(formatted_prompts)
-            first_index = [i * 5 for i in range(len(prompts))]
-            second_index = [i + 1 for i in first_index]
-            third_index = [i + 2 for i in first_index]
-            fourth_index = [i + 3 for i in first_index]
-            fifth_index = [i + 4 for i in first_index]
-
-
+        # few-shot combined reward index
+        if mode == 'train': 
+            batch_reward_index = [[i * self.num_classes + j for i in range(len(prompts))] for j in range(0, self.num_classes)]
+    
         for batch_index in range(len(prompts)): # 1-shot: z-score always work, not needs to change code bone
-            # new
-            if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-                Combine=True
-                if not Combine or mode=='infer':
-                    pos_logits = probs[batch_index * 2, [self.pos_id, self.neg_id]]
-                    neg_logits = probs[batch_index * 2 + 1, [self.pos_id, self.neg_id]]
-                    pos_probs = torch.softmax(pos_logits, -1)
-                    neg_probs = torch.softmax(neg_logits, -1)
-                    # UnBounded
-                    # pos_reward = ((pos_pos_prob - pos_neg_prob) / (pos_neg_prob))
-                    # neg_reward = ((neg_neg_prob - neg_pos_prob) / (neg_pos_prob))
-        
-                    # new
-                    pos_pos_prob, pos_neg_prob = pos_probs[0], pos_probs[1]
-                    neg_pos_prob, neg_neg_prob = neg_probs[0], neg_probs[1]
-                    #print(pos_pos_prob,neg_neg_prob)
-            
-                    # Bounded
-                    pos_reward = torch.exp(pos_pos_prob)#-torch.exp(1-pos_pos_prob) #/ (pos_neg_prob + pos_pos_prob))
-                    neg_reward = torch.exp(neg_neg_prob)#-torch.log(1-neg_neg_prob) #/ (neg_pos_prob + neg_neg_prob))
-        
-                    # balanced reward
-                    pos_ratio = pos_pos_prob/pos_neg_prob
-                    neg_ratio = neg_neg_prob/neg_pos_prob
-
-                    # bias exists, like our intermediate region in TST
-                    # 7/3 * 7/3 , 0, 
-                    if pos_pos_prob >= 0.5 and neg_neg_prob >= 0.5:# w/o shaping, [2+]
-                        acc = torch.tensor(1).float().cuda()
-                        if pos_pos_prob >=0.6 and neg_neg_prob >=0.6:
-                            reward = 2*torch.log(pos_ratio*neg_ratio) # 5
-                        else:
-                            reward = 2*torch.log(pos_ratio*neg_ratio)# / (torch.exp(torch.tensor(2,dtype=torch.float32))) 
-                    elif (pos_pos_prob-0.5) * (neg_neg_prob-0.5)<0: # 
-                    #print(pos_pos_prob, neg_neg_prob)
-                        acc = torch.tensor(0.5).cuda()
-        
-                        if (pos_pos_prob - 0.5) < 0:
-                            reward = 2*torch.clip(torch.log(pos_ratio),min=-5)
-                        elif (neg_neg_prob-0.5) < 0:
-                            reward = 2*torch.clip(torch.log(neg_ratio), min=-5)
-                    elif pos_pos_prob < 0.5 and neg_neg_prob < 0.5: # [-24,-11]
-                        acc = torch.tensor(0.0).cuda()
-                        reward = 2*torch.clip(torch.log(pos_ratio),min=-5) + 2*torch.clip(torch.log(neg_ratio), min=-5)#8*torch.clip(torch.log(pos_pos_prob*neg_neg_prob),min=-3) # clip:  #torch.tensor(-5).to('cuda')
-                    average_reward = reward
-                else:
-                    current_pt = [prompt_strings[batch_index] for _ in range(len(source_strings))]
-                    # formatted_current_prompt_sentences, _ = self._format_prompts(source_strings, current_pt, PAIR)
-                    formatted_current_prompt_sentences, _ = self._format_prompts(source_strings, current_pt)
-                    current_probs = self._get_probs(formatted_current_prompt_sentences, prompt_length)
-                    sample_Pair=False
-                    if sample_Pair:
-                        sample_pos_index = random.sample(pos_index, 1)
-                        sample_neg_index = random.sample(neg_index, 1)
-                    pos_logits = current_probs[pos_index][:,[self.pos_id, self.neg_id]]
-                    neg_logits = current_probs[neg_index][:,[self.pos_id, self.neg_id]]
-                    pos_probs = torch.softmax(pos_logits,-1)
-                    neg_probs = torch.softmax(neg_logits,-1)
-                    print(neg_probs.shape)
-                    pos_prob = pos_probs[:,0]
-                    neg_prob = neg_probs[:,1]
-                    
-                    #print(pos_prob[0], neg_prob[0])
-                    #print(pos_prob[1], neg_prob[1])
-                    # current prediced probs
-                    pos_predict_best_prob = torch.max(pos_probs, dim=-1).values
-                    neg_predict_best_prob = torch.max(neg_probs, dim=-1).values
-                    # 
-                    pos_predict_sec_prob = torch.topk(pos_probs, k=2,dim=-1).values[:,1]
-                    neg_predict_sec_prob = torch.topk(neg_probs, k=2,dim=-1).values[:,1]
-                    #
-                    pos_flag = (pos_prob - pos_predict_best_prob >=0)
-                    neg_flag = (neg_prob - neg_predict_best_prob >=0)
-
-                    class_flag = pos_flag.int() + neg_flag.int()
-
-                    acc = torch.sum(class_flag.float())
-                    acc = acc/(2*pos_flag.shape[0])
-                    
-                    reward_pos = torch.where(pos_prob - pos_predict_best_prob >=0, 2*(pos_predict_best_prob-pos_predict_sec_prob), 1.8*(pos_prob-pos_predict_best_prob))
-                    reward_neg = torch.where(neg_prob - neg_predict_best_prob >=0, 2*(neg_predict_best_prob-neg_predict_sec_prob), 1.8*(neg_prob-neg_predict_best_prob))
-                    average_reward = torch.mean(reward_pos + reward_neg) * 50
-
-                if mode == 'train':
-                    quantities_to_log["acc"].append(acc.item())
-                    quantities_to_log["reward"].append(average_reward.item())
-                else:
-                    quantities_to_log["reward"].append(reward.item())
-            
-            elif self._task_name == 'agnews':
-                if mode == 'train':
-                    sep=False
-                    if not sep:
-                        # learned prompts
-                        # current_pt -> prob
-                        current_pt = [prompt_strings[batch_index] for _ in range(len(source_strings))]
-                        # formatted_current_prompt_sentences, _ = self._format_prompts(source_strings, current_pt, PAIR)
-                        formatted_current_prompt_sentences, _ = self._format_prompts(source_strings, current_pt)
-                        current_probs = self._get_probs(formatted_current_prompt_sentences, prompt_length)
-                        # perform sampling
-                        '''
-                        sample_world_index = random.sample(world_index, 1)
-                        sample_sports_index = random.sample(sports_index, 1)
-                        sample_business_index = random.sample(business_index, 1)
-                        sample_technology_index = random.sample(technology_index, 1)
-                        '''
-                        average_reward = torch.tensor(0).float().cuda()
-                        world_logits = current_probs[world_index][:, [self.world_id, self.sports_id, self.business_id, self.technology_id]]
-                        sports_logits = current_probs[sports_index][:, [self.world_id, self.sports_id, self.business_id, self.technology_id]]
-                        business_logits = current_probs[business_index][:, [self.world_id, self.sports_id, self.business_id, self.technology_id]]
-                        technology_logits = current_probs[technology_index][:, [self.world_id, self.sports_id, self.business_id, self.technology_id]]
-                    else:
-                        world_logits = probs[batch_index * 4, [self.world_id, self.sports_id, self.business_id, self.technology_id]]
-                        sports_logits = probs[batch_index * 4 + 1, [self.world_id, self.sports_id, self.business_id, self.technology_id]]
-                        business_logits = probs[batch_index * 4 + 2, [self.world_id, self.sports_id, self.business_id, self.technology_id]]
-                        technology_logits = probs[batch_index * 4 + 3, [self.world_id, self.sports_id, self.business_id, self.technology_id]]
-
-                    world_probs = torch.softmax(world_logits, -1)
-                    sports_probs = torch.softmax(sports_logits, -1)
-                    tech_probs = torch.softmax(technology_logits, -1)
-                    business_probs = torch.softmax(business_logits, -1)
-                    if not sep:
-                        world_prob = world_probs[:,0] # :,
-                        sports_prob = sports_probs[:,1]
-                        tech_prob = tech_probs[:,3]
-                        business_prob = business_probs[:,2]
-                    else:
-                        world_prob = world_probs[0]
-                        sports_prob = sports_probs[1]
-                        tech_prob = tech_probs[3]
-                        business_prob = business_probs[2]
-
-                    # current predicted probs
-                    world_predict_best_prob = torch.max(world_probs, dim=-1).values
-                    sports_predict_best_prob = torch.max(sports_probs, dim=-1).values
-                    tech_predict_best_prob = torch.max(tech_probs, dim=-1).values
-                    business_predict_best_prob = torch.max(business_probs, dim=-1).values
-                    # current predicted labels
-                    world_predict_label = torch.argmax(world_probs, dim=-1)
-                    sports_predict_label = torch.argmax(sports_probs, dim=-1)
-                    tech_predict_label = torch.argmax(tech_probs, dim=-1)
-                    business_predict_label = torch.argmax(business_probs, dim=-1)
-                    # whether predicted correctly
-                    wd_index = torch.where(world_predict_label == 0, True, False)
-                    sp_index = torch.where(sports_predict_label == 1, True, False) 
-                    tc_index = torch.where(tech_predict_label == 3, True, False)
-                    bs_index = torch.where(business_predict_label == 2, True, False)
-                    # acc
-                    wd_index_val = wd_index * torch.ones(wd_index.shape).cuda()
-                    sp_index_val = sp_index * torch.ones(wd_index.shape).cuda()
-                    tc_index_val = tc_index * torch.ones(wd_index.shape).cuda()
-                    bs_index_val = bs_index * torch.ones(wd_index.shape).cuda()
-
-                    avg_wd_index = torch.mean(wd_index_val.float())
-                    avg_sp_index = torch.mean(sp_index_val.float())
-                    avg_tc_index = torch.mean(tc_index_val.float())
-                    avg_bs_index = torch.mean(bs_index_val.float())
-                    acc = torch.sum(wd_index) + torch.sum(sp_index) + torch.sum(tc_index) + torch.sum(bs_index)
-                    if not sep:
-                        acc = acc/(len(wd_index)*4)
-                    else:
-                        acc = acc
-
-                    Complicated = False
-                    if Complicated and sep:
-                        # neg: [-10,0]
-                        reward_world = torch.where(wd_index == True, 5 * world_prob, 3*torch.clip(torch.log(world_prob), min=-6)) # pos: neglect, since we have acc based
-                        reward_sports = torch.where(sp_index == True, 5 * sports_prob, 3*torch.clip(torch.log(sports_prob), min=-6))
-                        reward_tech = torch.where(tc_index == True, 5 * tech_prob, 3*torch.clip(torch.log(tech_prob), min=-6))
-                        reward_business = torch.where(bs_index == True, 5 * business_prob, 3*torch.clip(torch.log(business_prob), min=-6))
-                    elif not Complicated and sep:
-                        reward_world = torch.where(world_prob-world_predict_best_prob>=0, world_prob * 10, 15*(world_prob-world_predict_best_prob))
-                        reward_sports = torch.where(sports_prob-sports_predict_best_prob>=0, sports_prob * 10, 15*(sports_prob-sports_predict_best_prob))
-                        reward_tech = torch.where(tech_prob-tech_predict_best_prob>=0, tech_prob * 10, 15*(tech_prob-tech_predict_best_prob))
-                        reward_business = torch.where(business_prob-business_predict_best_prob>=0, business_prob * 10, 15*(business_prob-business_predict_best_prob))
-
-                    # batch size vector
-                    # pos
-                    #wd_index = torch.gt(reward_world, 0)
-                    #sp_index = torch.gt(reward_sports, 0)
-                    #tc_index = torch.gt(reward_tech, 0)
-                    #bs_index = torch.gt(reward_business, 0)
-                    
-                    count_based = False
-                    if count_based:
-                        avg_world_reward = torch.mean(reward_world)
-                        avg_sports_reward = torch.mean(reward_sports)
-                        avg_tech_reward = torch.mean(reward_tech)
-                        avg_business_reward = torch.mean(reward_business)
-
-                        if True:
-                            #acc = torch.sum(wd_index) + torch.sum(sp_index) + torch.sum(tc_index) + torch.sum(bs_index)
-                            #acc = acc/(len(wd_index)*4)
-                            #print(acc) world_predict_best_prob
-                            world_predict_sec_prob = torch.topk(world_probs, k=2, dim=-1).values[1]
-                            sports_predict_sec_prob = torch.topk(sports_probs, k=2,dim=-1).values[1]
-                            tech_predict_sec_prob = torch.topk(tech_probs, k=2,dim=-1).values[1]
-                            business_predict_sec_prob = torch.topk(business_probs, k=2,dim=-1).values[1]
-                            world_ratio = world_predict_best_prob/world_predict_sec_prob
-                            sports_ratio = sports_predict_best_prob/sports_predict_sec_prob
-                            tech_ratio = tech_predict_best_prob/tech_predict_sec_prob
-                            business_ratio = business_predict_best_prob/business_predict_sec_prob
-                            # variation
-                            reward_world = torch.where(world_prob-world_predict_best_prob>=0, torch.clip(world_ratio,max=8) * 3, 20*(world_prob-world_predict_best_prob))
-                            reward_sports = torch.where(sports_prob-sports_predict_best_prob>=0, torch.clip(sports_ratio,max=8) * 3, 20*(sports_prob-sports_predict_best_prob))
-                            reward_tech = torch.where(tech_prob-tech_predict_best_prob>=0, torch.clip(tech_ratio,max=8) * 3, 20*(tech_prob-tech_predict_best_prob))
-                            reward_business = torch.where(business_prob-business_predict_best_prob>=0, torch.clip(business_ratio,max=8) * 3, 20*(business_prob-business_predict_best_prob))
-                            reward = (reward_world + reward_sports + reward_tech + reward_business)/4
-                            
-                            average_reward = torch.mean(reward)
-                        # sum over
-
-
-                    else:
-                        #whole_index = wd_index * sp_index * tc_index * bs_index
-                        #reward_world = torch.where(whole_index < 0, reward_world, reward_world - 3.5)
-                        #reward_sports = torch.where(whole_index < 0, reward_sports, reward_sports - 3.5)
-                        #reward_tech = torch.where(whole_index < 0, reward_tech, reward_tech - 3.5)
-                        #reward_business = torch.where(whole_index < 0, reward_business, reward_business - 3.5)
-                        world_predict_sec_prob = torch.topk(world_probs, k=2, dim=-1).values[:,1] # :,
-                        sports_predict_sec_prob = torch.topk(sports_probs, k=2,dim=-1).values[:,1]
-                        tech_predict_sec_prob = torch.topk(tech_probs, k=2,dim=-1).values[:,1]
-                        business_predict_sec_prob = torch.topk(business_probs, k=2,dim=-1).values[:,1]
-                        # reward, BIAS: 5*torch.clip(world_predict_best_prob/world_predict_sec_prob, max=5
-                        world_flag = (world_prob-world_predict_best_prob>=0)
-                        sports_flag = (sports_prob-sports_predict_best_prob>=0)
-                        tech_flag = (tech_prob-tech_predict_best_prob>=0)
-                        business_flag = (business_prob-business_predict_best_prob>=0)
-                        # reward
-                        class_flag = world_flag.int() + sports_flag.int() + tech_flag.int() + business_flag.int()
-                        # print('class_flag', class_flag)
-                        
-                        reward_world = torch.where(world_prob-world_predict_best_prob>=0, 2*(world_predict_best_prob-world_predict_sec_prob), 1.8*(world_prob-world_predict_best_prob))
-                        #reward = torch.where(class_flag >=2, reward, )
-                        #average_reward += reward
-                        reward_sports = torch.where(sports_prob-sports_predict_best_prob>=0, 2*(sports_predict_best_prob-sports_predict_sec_prob), 1.8*(sports_prob-sports_predict_best_prob))
-                        reward_tech = torch.where(tech_prob-tech_predict_best_prob>=0, 2*(tech_predict_best_prob-tech_predict_sec_prob), 1.8*(tech_prob-tech_predict_best_prob))
-                        reward_business = torch.where(business_prob-business_predict_best_prob>=0, 2*(business_predict_best_prob-business_predict_sec_prob), 1.8*(business_prob-business_predict_best_prob))
-                        average_reward = torch.mean(reward_world + reward_sports + reward_tech + reward_business) * 25 #acc * 20#torch.mean(reward)#reward * torch.exp(acc) #* torch.log(10 * acc)#torch.mean(reward)
-                        
-                        #average_reward = torch.mean(reward)
-                        #if acc > 0.7:
-                        #    average_reward += 5
-                elif mode == 'infer':
-                    world_logits = probs[batch_index * 4, [self.world_id, self.sports_id, self.business_id, self.technology_id]]
-                    sports_logits = probs[batch_index * 4 + 1, [self.world_id, self.sports_id, self.business_id, self.technology_id]]
-                    business_logits = probs[batch_index * 4 + 2, [self.world_id, self.sports_id, self.business_id, self.technology_id]]
-                    technology_logits =probs[batch_index * 4 + 3, [self.world_id, self.sports_id, self.business_id, self.technology_id]]
-                    
-                    world_probs = torch.softmax(world_logits, -1)
-                    sports_probs = torch.softmax(sports_logits, -1)
-                    tech_probs = torch.softmax(technology_logits, -1)
-                    business_probs = torch.softmax(business_logits, -1)
-                    # probs shape
-                    #print(tech_probs.shape)
-                    # prob
-                    world_prob = world_probs[0]
-                    sports_prob = sports_probs[1]
-                    tech_prob = tech_probs[3]
-                    business_prob = business_probs[2]
-                    # predicted label
-                    world_predict_label = torch.argmax(world_probs, dim=-1)
-                    sports_predict_label = torch.argmax(sports_probs, dim=-1)
-                    tech_predict_label = torch.argmax(tech_probs, dim=-1)
-                    business_predict_label = torch.argmax(business_probs, dim=-1)
-
-                if mode == 'train':
-                    quantities_to_log["avg_world_reward"].append(torch.mean(reward_world).item())
-                    quantities_to_log["avg_sports_reward"].append(torch.mean(reward_sports).item())
-                    quantities_to_log["avg_tech_reward"].append(torch.mean(reward_tech).item())
-                    quantities_to_log["avg_business_reward"].append(torch.mean(reward_business).item())
-
-                    quantities_to_log["avg_reward"].append(average_reward.item())
-            elif self._task_name in ['sst-5', 'yelp-5']:
-                if mode =='train':
-                    current_pt = [prompt_strings[batch_index] for _ in range(len(source_strings))]
-                    formatted_current_prompt_sentences,_ = self._format_prompts(source_strings, current_pt, PAIR)
-                    current_probs = self._get_probs(formatted_current_prompt_sentences, prompt_length)
-                    # probs
-                    probs_1 = torch.softmax(current_probs[first_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
-                    probs_2 = torch.softmax(current_probs[second_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
-                    probs_3 = torch.softmax(current_probs[third_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
-                    probs_4 = torch.softmax(current_probs[fourth_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
-                    probs_5 = torch.softmax(current_probs[fifth_index][:, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]], -1)
-                    # prob
-                    prob_1 = probs_1[:, 0]
-                    prob_2 = probs_2[:, 1]
-                    prob_3 = probs_3[:, 2]
-                    prob_4 = probs_4[:, 3]
-                    prob_5 = probs_5[:, 4]
-                    # current best
-                    predict_best_prob1 = torch.max(probs_1, dim=-1).values
-                    predict_best_prob2 = torch.max(probs_2, dim=-1).values
-                    predict_best_prob3 = torch.max(probs_3, dim=-1).values
-                    predict_best_prob4 = torch.max(probs_4, dim=-1).values
-                    predict_best_prob5 = torch.max(probs_5, dim=-1).values
-                    # current labels
-                    predict_label1 = torch.argmax(probs_1, dim=-1)
-                    predict_label2 = torch.argmax(probs_2, dim=-1)
-                    predict_label3 = torch.argmax(probs_3, dim=-1)
-                    predict_label4 = torch.argmax(probs_4, dim=-1)
-                    predict_label5 = torch.argmax(probs_5, dim=-1)
-                    # whether predict correctly
-                    index_1 = torch.where(predict_label1 == 0, True, False)
-                    index_2 = torch.where(predict_label2 == 1, True, False)
-                    index_3 = torch.where(predict_label3 == 2, True, False)
-                    index_4 = torch.where(predict_label4 == 3, True, False)
-                    index_5 = torch.where(predict_label5 == 4, True, False)
-                    # acc
-                    index1_val = index_1 * torch.ones(index_1.shape).cuda()
-                    index2_val = index_2 * torch.ones(index_2.shape).cuda()
-                    index3_val = index_3 * torch.ones(index_3.shape).cuda()
-                    index4_val = index_4 * torch.ones(index_4.shape).cuda()
-                    index5_val = index_5 * torch.ones(index_5.shape).cuda()
-
-                    acc = torch.sum(index_1) + torch.sum(index_2) + torch.sum(index_3) + torch.sum(index_4) + torch.sum(index_5)
-                    acc = acc/(len(index_1)*5)
-                    
-                    predict_sec_prob1 = torch.topk(probs_1, k=2, dim=-1).values[:,1]
-                    predict_sec_prob2 = torch.topk(probs_2, k=2, dim=-1).values[:,1]
-                    predict_sec_prob3 = torch.topk(probs_3, k=2, dim=-1).values[:,1]
-                    predict_sec_prob4 = torch.topk(probs_4, k=2, dim=-1).values[:,1]
-                    predict_sec_prob5 = torch.topk(probs_5, k=2, dim=-1).values[:,1]
-                    # reward
-                    reward_1 = torch.where(prob_1 - predict_best_prob1>=0, 2*(predict_best_prob1-predict_sec_prob1), 1.8*(prob_1-predict_best_prob1))
-                    reward_2 = torch.where(prob_2 - predict_best_prob2>=0, 2*(predict_best_prob2-predict_sec_prob2), 1.8*(prob_2-predict_best_prob2))
-                    reward_3 = torch.where(prob_3 - predict_best_prob3>=0, 2*(predict_best_prob3-predict_sec_prob3), 1.8*(prob_3-predict_best_prob3))
-                    reward_4 = torch.where(prob_4 - predict_best_prob4>=0, 2*(predict_best_prob4-predict_sec_prob4), 1.8*(prob_4-predict_best_prob4))
-                    reward_5 = torch.where(prob_5 - predict_best_prob5>=0, 2*(predict_best_prob5-predict_sec_prob5), 1.8*(prob_5-predict_best_prob5))
-                    
-                    average_reward = torch.mean(reward_1+reward_2+reward_3+reward_4+reward_5) * 20
-                
-                    quantities_to_log["avg_1_reward"].append(torch.mean(reward_1).item())
-                    quantities_to_log["avg_2_reward"].append(torch.mean(reward_2).item())
-                    quantities_to_log["avg_3_reward"].append(torch.mean(reward_3).item())
-                    quantities_to_log["avg_4_reward"].append(torch.mean(reward_4).item())
-                    quantities_to_log["avg_5_reward"].append(torch.mean(reward_5).item())
-
-                    quantities_to_log["avg_reward"].append(average_reward.item())
-                elif mode == 'infer':
-                    first_logit = probs[batch_index * 5, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
-                    second_logit = probs[batch_index * 5 + 1, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
-                    third_logit = probs[batch_index * 5 + 2, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
-                    fourth_logit = probs[batch_index * 5 + 3, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
-                    fifth_logit = probs[batch_index * 5 + 4, [self.id_1, self.id_2, self.id_3, self.id_4, self.id_5]]
-
-                    first_probs = torch.softmax(first_logit, -1)
-                    second_probs = torch.softmax(second_logit, -1)
-                    third_probs = torch.softmax(third_logit, -1)
-                    fourth_probs = torch.softmax(fourth_logit, -1)
-                    fifth_probs = torch.softmax(fifth_logit, -1)
-
-                    first_prob = first_probs[0]
-                    second_prob = second_probs[1]
-                    third_prob = third_probs[2]
-                    fourth_prob = fourth_probs[3]
-                    fifth_prob = fifth_probs[4]
-
-                    # predict label
-                    first_predict_label = torch.argmax(first_probs, dim=-1)
-                    second_predict_label = torch.argmax(second_probs, dim=-1)
-                    third_predict_label = torch.argmax(third_probs, dim=-1)
-                    fourth_predict_label = torch.argmax(fourth_probs, dim=-1)
-                    fifth_predict_label = torch.argmax(fifth_probs, dim=-1)
-
             if mode == 'train':
-                input_rewards['a'] += [average_reward.item()]
-            
+                current_pt = [prompt_strings[batch_index] for _ in range(len(source_strings))]
+                formatted_current_prompt_sentences, _ = self._format_prompts(source_strings, current_pt)
+                current_probs = self._get_probs(formatted_current_prompt_sentences, prompt_length)
+                # few-shot class-specific probs.
+                # 1. few-shot class-specific probs vector.
+                class_probs = [torch.softmax(current_probs[batch_reward_index[i]][:, self.verbalizer_ids], -1) \
+                                        for i in range(self.num_classes)]
+                # 2. few-shot class-specific probs.
+                class_prob = [class_probs[i][:, i] for i in range(self.num_classes)]
+                # current predicted highest prob. 
+                pred_best_prob = [torch.max(class_probs[i], dim=-1).values for i in range(self.num_classes)]
+                # current predicted label.
+                pred_label = [torch.argmax(class_probs[i], dim=-1) for i in range(self.num_classes)]
+                # whether predicted correctly
+                flag_index = [torch.where(pred_label[i] == i, True, False) for i in range(self.num_classes)]
+                # accuracy over few-shot examples, e.g. 16-shot
+                acc = sum([torch.sum(flag_index[i]) for i in range(self.num_classes)])
+                acc = acc/(len(flag_index[0]) * self.num_classes)
+                # second predicted prob.     
+                pred_sec_prob = [torch.topk(class_probs[i], k=2, dim=-1).values[:,1] for i in range(self.num_classes)]       
+                # reward 
+                rewards = [torch.where(class_prob[i] - pred_best_prob[i] >= 0, 2 * (pred_best_prob[i] - pred_sec_prob[i]), 1.8*(class_prob[i] - pred_best_prob[i])) for i in range(self.num_classes)] 
+                average_reward = torch.mean(rewards[0] + rewards[1] + rewards[2] + rewards[3]) * 25 
+                # visualization
+                if self._task_name == 'agnews':
+                    quantities_to_log["avg_world_reward"].append(torch.mean(rewards[0]).item())
+                    quantities_to_log["avg_sports_reward"].append(torch.mean(rewards[1]).item())
+                    quantities_to_log["avg_business_reward"].append(torch.mean(rewards[2]).item())
+                    quantities_to_log["avg_tech_reward"].append(torch.mean(rewards[3]).item())
+                elif self._task_name in ['sst-5', 'yelp-5']:
+                    quantities_to_log["avg_1_reward"].append(torch.mean(rewards[0]).item())
+                    quantities_to_log["avg_2_reward"].append(torch.mean(rewards[1]).item())
+                    quantities_to_log["avg_3_reward"].append(torch.mean(rewards[2]).item())
+                    quantities_to_log["avg_4_reward"].append(torch.mean(rewards[3]).item())
+                    quantities_to_log["avg_5_reward"].append(torch.mean(rewards[4]).item())
+                elif self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
+                    quantities_to_log["avg_neg_reward"].append(torch.mean(rewards[0]).item())
+                    quantities_to_log["avg_pos_reward"].append(torch.mean(rewards[1]).item())
+
+                quantities_to_log["avg_reward"].append(average_reward.item())
+
+            elif mode == 'infer':
+                infer_probs = [torch.softmax(probs[batch_index * self.num_classes + i, self.verbalizer_ids], -1) for i in range(self.num_classes)]
+                # prob
+                infer_prob = [infer_probs[i] for i in range(self.num_classes)]
+                # predicted label
+                pred_labels = [torch.argmax(infer_probs[i], dim=-1) for i in range(self.num_classes)]
+                # TODO
+
+            # z-score normalization (1st stage)
             self._counter += 1
             if mode == 'train':
-                if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr', 'RTE', 'MRPC']:
+                input_rewards['z'] += [average_reward.item()]
+                # visualize one of them
+                if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
                     print(prompts[batch_index], '\n', 
                     formatted_prompts[batch_index * 2], '\n', 
                     formatted_prompts[batch_index * 2 + 1], '\n', 
-                    'acc:', acc.item(), '|',
-                    'Reward:', round(average_reward.item(), 2))
+                    'Accuracy:', acc.item(), '|',
+                    'Reward:', round(average_reward.item(), 2)) 
                 elif self._task_name == 'agnews':
                     print(prompts[batch_index], '\n',
                     formatted_prompts[batch_index * 4], '\n',
                     formatted_prompts[batch_index * 4 + 1], '\n',
                     formatted_prompts[batch_index * 4 + 2], '\n',
                     formatted_prompts[batch_index * 4 + 3], '\n',
-                    #'world prob:', world_prob.item(), '|',
-                    #'sports prob:', sports_prob.item(), '|',
-                    #'business prob:', business_prob.item(), '|',
-                    #'tech prob:', tech_prob.item(), '|',
-                    'Avg Reward:', round(average_reward.item(), 2), '|',
-                    'Acc:', acc.item())
+                    'Accuracy:', acc.item(), '|'
+                    'Reward:', round(average_reward.item(), 2))
                 elif self._task_name in ['sst-5', 'yelp-5']:
                     print(prompts[batch_index], '\n',
                     formatted_prompts[batch_index * 5], '\n',
@@ -1309,47 +763,42 @@ class PromptedClassificationReward(object):
                     formatted_prompts[batch_index * 5 + 2], '\n',
                     formatted_prompts[batch_index * 5 + 3], '\n',
                     formatted_prompts[batch_index * 5 + 4], '\n',
-                    #'1 prob:', prob_1.item(), '|',
-                    #'2 prob:', prob_2.item(), '|',
-                    #'3 prob:', prob_3.item(), '|',
-                    #'4 prob:', prob_4.item(), '|',
-                    'Acc:', acc.item(), '|',
+                    'Accuracy:', acc.item(), '|',
                     'Reward:', round(average_reward.item(), 2))
-            
                 rewards.append(average_reward)
+
             if mode == 'infer': # val score
-                if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']:
-                    pos_acc = torch.tensor(1) if pos_pos_prob >= 0.5 else torch.tensor(0)
-                    neg_acc = torch.tensor(1) if neg_neg_prob >= 0.5 else torch.tensor(0)
-
-                    rewards.append((pos_acc+neg_acc)/2)
+                if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']: # TODO
+                    pos_acc = torch.tensor(1) if pred_labels[1] == 1 else torch.tensor(0)
+                    neg_acc = torch.tensor(1) if pred_labels[0] == 0 else torch.tensor(0)
+                    reward = torch.tensor((pos_acc+neg_acc)/2).float()
                 elif self._task_name == 'agnews':
-                    world_acc = torch.tensor(1) if world_predict_label == 0 else torch.tensor(0)
-                    sports_acc = torch.tensor(1) if sports_predict_label == 1 else torch.tensor(0)
-                    business_acc = torch.tensor(1) if business_predict_label == 2 else torch.tensor(0)
-                    tech_acc = torch.tensor(1) if tech_predict_label == 3 else torch.tensor(0)
-                    
-                    rewards.append(torch.tensor((world_acc+sports_acc+business_acc+tech_acc)/4).float())
+                    world_acc = torch.tensor(1) if pred_labels[0] == 0 else torch.tensor(0)
+                    sports_acc = torch.tensor(1) if pred_labels[1] == 1 else torch.tensor(0)
+                    business_acc = torch.tensor(1) if pred_labels[2] == 2 else torch.tensor(0)
+                    tech_acc = torch.tensor(1) if pred_labels[3] == 3 else torch.tensor(0)         
+                    reward = torch.tensor((world_acc+sports_acc+business_acc+tech_acc)/4).float() # To be visualized     
                 elif self._task_name in ['sst-5', 'yelp-5']:
-                    acc_1 = torch.tensor(1) if first_predict_label == 0 else torch.tensor(0)
-                    acc_2 = torch.tensor(1) if second_predict_label == 1 else torch.tensor(0)
-                    acc_3 = torch.tensor(1) if third_predict_label == 2 else torch.tensor(0)
-                    acc_4 = torch.tensor(1) if fourth_predict_label == 3 else torch.tensor(0)
-                    acc_5 = torch.tensor(1) if fifth_predict_label == 4 else torch.tensor(0)
-
-                    rewards.append(torch.tensor((acc_1+acc_2+acc_3+acc_4+acc_5)/5).float())
-
-            
+                    acc_1 = torch.tensor(1) if pred_labels[0] == 0 else torch.tensor(0)
+                    acc_2 = torch.tensor(1) if pred_labels[1] == 1 else torch.tensor(0)
+                    acc_3 = torch.tensor(1) if pred_labels[2] == 2 else torch.tensor(0)
+                    acc_4 = torch.tensor(1) if pred_labels[3] == 3 else torch.tensor(0)
+                    acc_5 = torch.tensor(1) if pred_labels[4] == 4 else torch.tensor(0)
+                    reward = torch.tensor((acc_1+acc_2+acc_3+acc_4+acc_5)/5).float() # To be visualized
+                
+                rewards.append(reward)
+                quantities_to_log["reward"].append(reward.item()) 
         rewards_tensor = torch.stack(rewards)
         
+        # z-score normalization (2nd stage)
         if mode=='train':
             batch_zscore = True
             if batch_zscore:
                 input_reward_means = {k:np.mean(v) for k,v in input_rewards.items()}
                 input_reward_stds = {k:np.std(v) for k,v in input_rewards.items()}
                 # not source strings
-                idx_means = torch.tensor(input_reward_means['a']).float()
-                idx_stds = torch.tensor(input_reward_stds['a']).float()
+                idx_means = torch.tensor(input_reward_means['z']).float()
+                idx_stds = torch.tensor(input_reward_stds['z']).float()
                 rewards_tensor = (rewards_tensor - idx_means)/(idx_stds + 1e-4)
 
             for i in range(rewards_tensor.size(0)):
