@@ -50,7 +50,8 @@ For each dataset, we provide 5 different 16-shot training sets, toggled by `data
 ```
 bash scripts/run_few_shot_classification.sh [task_lm:distilroberta-base,roberta-base,roberta-large,distilgpt2,gpt2,gpt2-medium,gpt2-large,gpt2-xl] \
                                             [dataset:sst-2,yelp-2,mr,cr,agnews,sst-5,yelp-5] \
-                                            [dataset_seed:0,1,2,3,4]
+                                            [dataset_seed:0,1,2,3,4] \
+                                            [rl_seed]
 ```
 
 For example, to run on RoBERTa-large for SST-2 with `dataset_seed` of 0, enter the following:
