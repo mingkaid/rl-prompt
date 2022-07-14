@@ -5,7 +5,7 @@ translation:
     architecture: "transformer_small"
     mix_strategy: "mix"
     save_dir: "???"
-    random_seed: 1
+    random_seed: 0
     # Training time
     num_epochs: 30
     save_frequency: 1
