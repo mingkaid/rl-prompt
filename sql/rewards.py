@@ -757,8 +757,7 @@ class PromptedClassificationReward(object):
                     'Accuracy:', acc.item(), '|',
                     'Reward:', round(average_reward.item(), 2))
                 rewards.append(average_reward)
-
-            if mode == 'infer': # val score
+            elif mode == 'infer': # val score
                 acc_list = [torch.tensor(1) if pred_labels[i] == i else torch.tensor(0) for i in range(self.num_classes)]
                 if self._task_name in ['sst-2', 'yelp-2', 'mr', 'cr']: # TODO
                     reward = torch.tensor((acc_list[0]+acc_list[1])/2).float()
@@ -772,7 +771,7 @@ class PromptedClassificationReward(object):
         rewards_tensor = torch.stack(rewards)
         
         # z-score normalization (2nd stage)
-        if mode=='train':
+        if mode == 'train':
             batch_zscore = True
             if batch_zscore:
                 input_reward_means = {k:np.mean(v) for k,v in input_rewards.items()}
@@ -784,6 +783,10 @@ class PromptedClassificationReward(object):
 
             for i in range(rewards_tensor.size(0)):
                 quantities_to_log['resized_reward'].append(rewards_tensor[i].item())
+        elif mode == 'infer': # Optional: Predict Val Prompts
+            score = rewards_tensor.mean().item()
+            print('Our Prompt:')
+            print(prompt_strings, score)
         
         rewards_log = dict(
             (reward_key, torch.mean(torch.tensor(reward_vals)))
