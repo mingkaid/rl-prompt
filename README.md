@@ -54,9 +54,9 @@ bash scripts/run_few_shot_classification.sh [task_lm:distilroberta-base,roberta-
                                             [rl_seed]
 ```
 
-For example, to run on RoBERTa-large for SST-2 with `dataset_seed` of 0, enter the following:
+For example, to run on RoBERTa-large for SST-2 with `dataset_seed` of 0 and with `rl_seed` of 0, enter the following:
 ```
-bash scripts/run_few_shot_classification.sh roberta-large sst-2 0
+bash scripts/run_few_shot_classification.sh roberta-large sst-2 0 0
 ```
 
 ### Text Style Transfer
