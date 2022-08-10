@@ -59,6 +59,8 @@ For example, to run on RoBERTa-large for SST-2 with `dataset_seed` of 0 and with
 bash scripts/run_few_shot_classification.sh roberta-large sst-2 0 0
 ```
 
+#### Evaluation
+
 ### Text Style Transfer
 We experiment on Yelp for sentiment and Shakespeare for authorship transfer, respectively. 
 For Shakespeare, we test for [few-shot text style transfer](https://arxiv.org/abs/2010.03802) by only training on 100 examples per style. 
