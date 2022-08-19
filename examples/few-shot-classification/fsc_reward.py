@@ -98,17 +98,17 @@ class PromptedClassificationReward(BaseReward):
             class_probs = torch.softmax(all_logits[:, self.verbalizer_ids], -1)
             # [batch_size, num_classes]
 
-            # Get label probabilities
+            # Get label and maximum not-label probabilities
             label_probs = class_probs[range(batch_size), class_labels]
             # [batch_size, 1]
-            anti_label_probs = torch.where(\
+            not_label_probs = torch.where(\
                 class_probs == label_probs.unsqueeze(1), -1, class_probs)
-            # [batch_size, num_classes - 1]
-            max_anti_label_probs, _ = torch.max(anti_label_probs, -1)
+            # [batch_size, num_classes]
+            max_not_label_probs, _ = torch.max(not_label_probs, -1)
             # [batch_size, 1]
 
             # Compute piecewise gap reward
-            gap = (label_probs - max_anti_label_probs)
+            gap = (label_probs - max_not_label_probs)
             correct = (gap > 0).long()
             gap_rewards = gap * (self.correct_coeff * correct \
                                  + self.incorrect_coeff * (1 - correct))

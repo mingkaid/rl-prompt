@@ -30,6 +30,7 @@ def make_text_style_transfer_datasets(
     label = int(config.direction[0])
     data_dict = {}
     for split in ['train', 'dev', 'test']: 
+        # Hack - Only use 16 examples for Yelp validation
         if config.dataset == "yelp" and split == 'dev': 
             max_size = 16
         else: 
@@ -60,7 +61,7 @@ def load_text_style_transfer_dataset(
     assert split in ['train', 'dev', 'test']
 
     if dataset == 'yelp':
-        filepath = f'{dataset}/preprocessed/sentiment.{split}.{label}.preprocess'
+        filepath = f'{dataset}/clean/sentiment.{split}.{label}.clean'
         full_filepath = os.path.join(base_path, filepath)
         with open(full_filepath) as f:
             sentences = [line.strip() for line in f]
