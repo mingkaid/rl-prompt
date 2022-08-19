@@ -2,9 +2,8 @@ torch
 numpy
 pandas
 wandb
-texar-pytorch
 transformers
 bert_score
-hydra-core==1.0.7
+hydra-core==1.2.0
 typing
 sacrebleu
