@@ -8,7 +8,6 @@ def make_lm_adaptor_model(config: "DictConfig") -> LMAdaptorModel:
                           config.logit_bias,
                           config.fluent,
                           config.fluent_top_k,
-                          config.max_source_length,
                           config.max_decoding_length,
                           config.eos_token_id)
 
@@ -17,7 +16,8 @@ def make_single_prompt_model(model: BaseModel,
                              config: "DictConfig") -> SinglePromptModel:
     return SinglePromptModel(model,
                              config.prompt_length,
-                             config.prompt_batch_size,
+                             config.prompt_train_batch_size,
+                             config.prompt_infer_batch_size,
                              config.source_str)
 
 
@@ -34,8 +34,6 @@ class LMAdaptorModelConfig:
     # a GPT-2 model
     fluent_top_k: int = 20
     # k for top-k probability above
-    max_source_length: int = 512
-    # Max input token length for the model
     max_decoding_length: int = 5
     # Max output token length for the model
     eos_token_id: Optional[int] = None
@@ -45,5 +43,6 @@ class LMAdaptorModelConfig:
 @dataclass
 class SinglePromptModelConfig:
     prompt_length: int = 5
-    prompt_batch_size: int = 8
+    prompt_train_batch_size: int = 8
+    prompt_infer_batch_size: int = 8
     source_str: str = "<|endoftext|>"

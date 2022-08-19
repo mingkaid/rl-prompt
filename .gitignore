@@ -1,3 +1,5 @@
-experiments/tst_classifiers
-outputs
+*style_classifiers*
+*wandb*
+*outputs
 *.pyc
+*.ipynb_checkpoints

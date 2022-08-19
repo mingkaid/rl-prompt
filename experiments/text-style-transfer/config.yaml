@@ -8,6 +8,9 @@ direction: "1_to_0"
 # Reward
 style_classifier_path: "./style_classifiers/yelp-bert-base-uncased-train"
 lower_outputs: true
+# Single Prompt Model
+prompt_train_batch_size: 8
+prompt_infer_batch_size: 16
 # LM Adaptor Model
 logit_bias: -10
 # SQL Module

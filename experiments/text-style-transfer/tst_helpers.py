@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import numpy as np
+import pandas as pd
 import os
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
@@ -66,8 +67,9 @@ def load_text_style_transfer_dataset(
 
     elif dataset == 'shakespeare':
         seed_dict = {0: f'100-100', 1: f'100-13', 2: f'100-21'}
-        filepath = f'{dataset}/100-shot/{seed_dict[seed]}/{split}.tsv'
-        df = pd.read_csv(filepath, sep='\t')
+        filepath = f'{dataset}/100-shot/{seed_dict[dataset_seed]}/{split}.tsv'
+        full_filepath = os.path.join(base_path, filepath)
+        df = pd.read_csv(full_filepath, sep='\t')
         sentences = df.query(f'label == {label}').text.tolist()
 
     # Option to keep only certain number of examples

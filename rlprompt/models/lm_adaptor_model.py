@@ -36,7 +36,6 @@ class LMAdaptorModel(BaseModel):
         fluent: bool,
         fluent_top_k: Optional[int],
         # Generation parameters
-        max_source_length: int,
         max_decoding_length: int,
         eos_token_id: Optional[int]
     ):
@@ -58,7 +57,6 @@ class LMAdaptorModel(BaseModel):
         self.logit_bias = logit_bias
         self.fluent = fluent
         self.fluent_top_k = fluent_top_k
-        self.max_source_length = max_source_length
         self.max_decoding_length = max_decoding_length
         self.eos_token_id = eos_token_id
 
@@ -219,14 +217,11 @@ class LMAdaptorModel(BaseModel):
 
     def _get_generation_cache(self,
                               source_texts: List[str],
-                              past_key_values=None,
-                              max_length: Optional[int] = None):
-        if max_length is None:
-            max_length = self.max_source_length
+                              past_key_values=None):
         token_encoding = (self.generator
                           .tokenizer(source_texts,
+                                     padding=True,
                                      truncation=True,
-                                     max_length=max_length,
                                      return_tensors='pt')
                           .to(self.device))
         input_ids = token_encoding['input_ids']

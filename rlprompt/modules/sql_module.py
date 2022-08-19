@@ -176,7 +176,7 @@ class SQLModule(BaseModule):
                                     top_k=self._top_k,
                                     top_p=self._top_p,
                                     num_beams=self._num_beams,
-                                    match_prompt_to_source=True)
+                                    infer=True)
 
     def _decode_sampling(
         self,
