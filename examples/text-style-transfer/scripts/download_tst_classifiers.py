@@ -1,6 +1,6 @@
 import argparse
 import os
-from experiments.download import maybe_download
+from download import maybe_download
 
 MODEL_URLS = {'yelp-train': 'https://drive.google.com/file/d/1AUBbpFcfBkKh5WUGwdXFhHxzZspPRn7W/view?usp=sharing',
               'yelp-test': 'https://drive.google.com/file/d/1VOhHZiYzZy8fzKpFDEqsbwvxO6iJ8dSr/view?usp=sharing',
@@ -17,7 +17,7 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    target_path = './experiments/tst_classifiers'
+    target_path = './style_classifiers'
     os.makedirs(target_path, exist_ok=True)
     maybe_download(urls=MODEL_URLS[args.model_name],
                    path=target_path,

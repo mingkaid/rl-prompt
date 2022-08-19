@@ -112,17 +112,23 @@ class TextStyleTransferDatasetConfig:
 def make_prompted_text_style_transfer_reward(
         config: "DictConfig") -> PromptedTextStyleTransferReward:
     return PromptedTextStyleTransferReward(
-        config.task_lm, config.style_classifier_path, 
-        config.num_repeats, config.num_samples, config.num_bootstraps,
-        config.compute_zscore, config.lower_outputs)
+        config.task_lm, config.task_top_k, config.style_classifier_path, 
+        config.style_batch_size, config.pad_token, config.num_repeats, 
+        config.num_samples, config.num_bootstraps, config.compute_zscore, 
+        config.lower_outputs, config.template, config.end_punct)
 
 
 @dataclass
 class PromptedTextStyleTransferRewardConfig:
     task_lm: str = 'distilgpt2'
+    task_top_k: int = 10
     style_classifier_path: str = '???'
+    style_batch_size: int = 32
+    pad_token: str = '<|endoftext|>'
     num_repeats: int = 4
     num_samples: int = 32
     num_bootstraps: int = 4
     compute_zscore: bool = True  # Whether to compute z-score of rewards
     lower_outputs: bool = False  # Whether to convert all outputs to lower case
+    template: str = '{prompt} "{sentence_1}" "'
+    end_punct: str = '"'

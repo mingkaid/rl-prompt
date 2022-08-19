@@ -9,27 +9,26 @@ from collections import defaultdict
 
 from rlprompt.rewards import BaseReward
 
-# Magic numbers and variables
-DEFAULT_TEMPLATE = '{prompt} "{sentence_1}" "'
-DEFAULT_END_PUNCT = '"'
+# Magic variable
 SUPPORTED_LMS = ['distilgpt2', 'gpt2', 'gpt2-medium',
                  'gpt2-large', 'gpt2-xl']
-DEFAULT_PAD_TOKEN = '<|endoftext|>'
-DEFAULT_PAD_TOKEN_ID = 50256
-DEFAULT_TOP_K = 10
-DEFAULT_STYLE_BATCH_SIZE = 32
 
 
 class PromptedTextStyleTransferReward(BaseReward):
     def __init__(
         self,
         task_lm: str,
+        task_top_k: int,  # Top-k sampling for text generation
         style_classifier_path: str,
+        style_batch_size: int,
+        pad_token: str,
         num_repeats: int,  # Num of repetitions for each example
         num_samples: int,  # Num of samples from which to take the output
         num_bootstraps: int,  # Num of bootstraps to reduce reward randomness
         compute_zscore: bool,  # Whether to compute z-score of rewards
-        lower_outputs: bool  # Whether to convert all outputs to lower case
+        lower_outputs: bool,  # Whether to convert all outputs to lower case
+        template: str,  # Template for prompt generation
+        end_punct: str,  # End punctuation to cut off after generation
     ):
         generator_device = 0  # TODO
         reward_device = 0  # TODO
@@ -38,23 +37,22 @@ class PromptedTextStyleTransferReward(BaseReward):
         assert task_lm in SUPPORTED_LMS
         generator_model = task_lm
         print('Task LM:', generator_model)
-        tokenizer = AutoTokenizer.from_pretrained(generator_model,
-                                                  pad_token=DEFAULT_PAD_TOKEN)
+        self.tokenizer = AutoTokenizer.from_pretrained(generator_model,
+                                                       pad_token=pad_token)
         self._generator = pipeline("text-generation",
                                    model=generator_model,
-                                   tokenizer=tokenizer,
+                                   tokenizer=self.tokenizer,
                                    device=generator_device)
+        self.top_k = task_top_k
         self.num_samples = num_samples
         self.num_bootstraps = num_bootstraps
-        self.top_k = DEFAULT_TOP_K  # TODO
-        self.pad_token_id = DEFAULT_PAD_TOKEN_ID  # TODO
 
         # Loading reward models
         self._style_classifier = pipeline("sentiment-analysis",
                                           model=style_classifier_path,
                                           tokenizer='bert-base-uncased', # TODO
                                           device=reward_device)
-        self.style_batch_size = DEFAULT_STYLE_BATCH_SIZE  # TODO
+        self.style_batch_size = style_batch_size
         # We use BERTScore which computes the equivalent of the CTC
         # content/semantic preservation metric
         self._bert_scorer = BERTScorer('roberta-large',
@@ -63,15 +61,15 @@ class PromptedTextStyleTransferReward(BaseReward):
                                        lang='en')
 
         # Misc. generation params
-        self._generator_template = DEFAULT_TEMPLATE  # TODO: Allow options
-        self._generator_end_punct = DEFAULT_END_PUNCT  # TODO: Allow options
         self._lower_outputs = lower_outputs
+        self._generator_template = template
+        self._generator_end_punct = end_punct
 
         # Misc. training details
         self.num_repeats = num_repeats
+        self.compute_zscore = compute_zscore
         self._counter = 0
         self.tokens_explored = set()
-        self.compute_zscore = compute_zscore
 
     def forward(
         self,
@@ -104,7 +102,7 @@ class PromptedTextStyleTransferReward(BaseReward):
         generator_outputs: List[List[Dict[str, Any]]] = \
             self._generator(X,
                             # max_length=60, # Default max_length is 50
-                            pad_token_id=self.pad_token_id,
+                            pad_token_id=self.tokenizer.pad_token_id,
                             top_k=self.top_k,
                             num_return_sequences=N,
                             # Only return generated text, without the prompt

@@ -134,8 +134,11 @@ class PromptedClassificationReward(BaseReward):
                 class_example_idx = (np.array(class_labels) == c)[0]
                 class_example = formatted_templates[class_example_idx]
                 class_example_probs = class_probs[class_example_idx, :].tolist()
-                print_strs += [c, '|', class_example, '|',
-                               class_example_probs, '\n']
+                class_example_probs = [round(prob, 2) \
+                                       for prob in class_example_probs]
+                print_strs += ['Class', c, '|', 
+                               class_example, '|',
+                               'Probs:', class_example_probs, '\n']
             print_strs += ['Accuracy:', acc.item(), '|',
                            'Reward:', round(reward.item(), 2)]
             print(*print_strs)
