@@ -1,8 +1,10 @@
 # Few-Shot Classification Config
-defaults:
-  - base_fsc
-  - _self_
+#defaults:
+#  - base_fsc
+#  - _self_
 # Data
+num_shots: 16
+base_path: "/data/jianyu/rl-prompt/examples/few-shot-classification/data"
 dataset: "sst-2"
 dataset_seed: 0
 # Reward
