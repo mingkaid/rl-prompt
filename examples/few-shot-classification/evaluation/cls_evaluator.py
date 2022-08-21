@@ -1,30 +1,28 @@
 import sys
 import hydra
 from typing import Optional, Tuple, List
-sys.path.append('../..')
-sys.path.append('.')
-from transformers import (AutoTokenizer,
-                          GPT2LMHeadModel,
-                          AutoModelForMaskedLM
-)
-import os
-import torch
-import click
-from torch.utils.data import Dataset, DataLoader
-from omegaconf import DictConfig, OmegaConf
-from rlprompt.utils.utils import colorful_print
+sys.path.append('..')
+import numpy as np
+import pandas as pd
 from fsc_helpers import (PromptedClassificationDataset,
                          make_few_shot_classification_dataset,
                          load_few_shot_classification_dataset,
-                         get_dataset_verbalizers
-)
-import pandas as pd
-import numpy as np
+                         get_dataset_verbalizers)
+from rlprompt.utils.utils import colorful_print
+from omegaconf import DictConfig, OmegaConf
+from torch.utils.data import Dataset, DataLoader
+import click
+import torch
+import os
+from transformers import (AutoTokenizer,
+                          GPT2LMHeadModel,
+                          AutoModelForMaskedLM)
 
 SUPPORTED_LEFT_TO_RIGHT_LMS = ['distilgpt2', 'gpt2', 'gpt2-medium',
                                'gpt2-large', 'gpt2-xl']
 SUPPORTED_MASK_LMS = ['distilroberta-base', 'roberta-base', 'roberta-large']
-    
+
+
 class PromptedClassificationEvaluation(object):
     def __init__(
             self,
@@ -58,12 +56,12 @@ class PromptedClassificationEvaluation(object):
             self._generator.config.pad_token_id = self._tokenizer.pad_token_id
         self.num_classes = num_classes
         self.verbalizers = verbalizers
-    
+
         self.verbalizer_ids = [self._tokenizer.convert_tokens_to_ids(v)
                                for v in self.verbalizers]
         if template is None:
             self.template = self.load_default_template()  # prompt templates
-        else: 
+        else:
             self.template = template
 
         self.prompt = prompt
@@ -74,16 +72,16 @@ class PromptedClassificationEvaluation(object):
         mask_token_index = torch.where(
             input_ids == self._tokenizer.mask_token_id)[1]
         return mask_token_index
-            
+
     def load_default_template(self) -> List[str]:
         if self.is_mask_lm:
             template = "{sentence_1} {prompt} <mask> ."
         else:
             # Template for left-to-right LMs like GPT-2
             template = "{sentence_1} {prompt}"
-        
+
         return template
-    
+
     @torch.no_grad()
     def _get_logits(
         self,
@@ -97,12 +95,14 @@ class PromptedClassificationEvaluation(object):
 
         if self.is_mask_lm:
             # self.ensure_exactly_one_mask_token(encoded_inputs) TODO
-            token_logits = self._generator(**encoded_inputs.to(self.device)).logits
+            token_logits = self._generator(
+                **encoded_inputs.to(self.device)).logits
             mask_token_indices = \
                 self._get_mask_token_index(encoded_inputs['input_ids'])
             out_logits = token_logits[range(batch_size), mask_token_indices, :]
         else:
-            token_logits = self._generator(**encoded_inputs.to(self.device)).logits
+            token_logits = self._generator(
+                **encoded_inputs.to(self.device)).logits
             input_lengths = encoded_inputs['attention_mask'].sum(dim=1)
             out_logits = token_logits[range(batch_size), input_lengths - 1, :]
 
@@ -115,16 +115,16 @@ class PromptedClassificationEvaluation(object):
     ) -> List[str]:
         return [self.template.format(sentence_1=s_1, prompt=prompt)
                 for s_1, prompt in zip(source_strs, prompts)]
-    
+
     def forward(
-            self,
-            dataloader
-        ) -> float:
+        self,
+        dataloader
+    ) -> float:
         num_of_examples = dataloader.dataset.__len__()
         correct_sum = 0
         for i, batch in enumerate(dataloader):
-            inputs = batch['source_texts'] # List
-            targets = batch['class_labels'] # Tensor
+            inputs = batch['source_texts']  # List
+            targets = batch['class_labels']  # Tensor
             batch_size = targets.size(0)
             current_prompts = [self.prompt for _ in range(batch_size)]
             formatted_templates = self._format_prompts(current_prompts, inputs)
@@ -132,14 +132,15 @@ class PromptedClassificationEvaluation(object):
             class_probs = torch.softmax(all_logits[:, self.verbalizer_ids], -1)
             # Get labels
             predicted_labels = torch.argmax(class_probs, dim=-1)
-            label_agreement = torch.where(\
+            label_agreement = torch.where(
                 targets.cuda() == predicted_labels, 1, 0)
             # Compute accuracy
             correct_sum += label_agreement.sum()
         accuracy = correct_sum/num_of_examples
         return accuracy
 
-@hydra.main(config_path="../", config_name="config")
+
+@hydra.main(version_base=None, config_path="./", config_name="eval_config")
 def main(config: "DictConfig"):
     colorful_print(OmegaConf.to_yaml(config), fg='red')
 
@@ -156,19 +157,21 @@ def main(config: "DictConfig"):
     is_mask_lm = True if 'bert' in config.task_lm else False
     verbalizers = get_dataset_verbalizers(config.dataset)
     num_classes = len(verbalizers)
-    template = "<mask> {prompt} {sentence_1}" if config.dataset=='agnews' and is_mask_lm else None
-    prompt = "Absolutely VERY absolute VERY absolute" # just some examples, e.g. Alert Blog Dialogue Diary Accountability (82% for agnews)
+    template = "<mask> {prompt} {sentence_1}" if config.dataset == 'agnews' and is_mask_lm else None
+    # just some examples, e.g. Alert Blog Dialogue Diary Accountability (82% for agnews)
+    prompt = "Absolutely VERY absolute VERY absolute"
     tester = PromptedClassificationEvaluation(
-            task_lm=config.task_lm,
-            is_mask_lm=is_mask_lm,
-            num_classes=num_classes,
-            verbalizers=verbalizers,
-            template=template,
-            prompt=prompt
+        task_lm=config.task_lm,
+        is_mask_lm=is_mask_lm,
+        num_classes=num_classes,
+        verbalizers=verbalizers,
+        template=template,
+        prompt=prompt
     )
-    
+
     acc = tester.forward(test_loader)
     print(click.style(f"prompt: {prompt}, accuracy: {acc}", fg="red"))
+
 
 if __name__ == "__main__":
     main()

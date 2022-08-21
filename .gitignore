@@ -1,6 +1,7 @@
-*style_classifiers*
-*wandb*
+*style_classifiers
+*wandb
 *outputs
 *.pyc
 *.ipynb_checkpoints
 *ppl
+*.egg-info

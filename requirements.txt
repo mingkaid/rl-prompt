@@ -1,9 +1,6 @@
 torch
 numpy
-pandas
+typing
 wandb
 transformers
-bert_score
 hydra-core==1.2.0
-typing
-sacrebleu

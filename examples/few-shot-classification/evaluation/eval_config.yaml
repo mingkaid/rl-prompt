@@ -1,0 +1,9 @@
+# Few-Shot Classification Config
+# Data
+num_shots: 16
+base_path: "../data"
+dataset: "sst-2"
+dataset_seed: 0
+# Reward
+task_lm: "roberta-large"
+

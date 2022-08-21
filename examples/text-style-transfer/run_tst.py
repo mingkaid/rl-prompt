@@ -1,6 +1,4 @@
 import os
-import sys
-sys.path.append('../..')
 import dataclasses
 import hydra
 from hydra.core.config_store import ConfigStore
@@ -23,7 +21,7 @@ from tst_helpers import (PromptedTextStyleTransferRewardConfig,
 config_list = [PromptedTextStyleTransferRewardConfig,
                 TextStyleTransferDatasetConfig, LMAdaptorModelConfig,
                 SinglePromptModelConfig, SQLModuleConfig, TrainerConfig]
-cs = compose_hydra_config_store('base_tst', configs)
+cs = compose_hydra_config_store('base_tst', config_list)
 
 
 @hydra.main(version_base=None, config_path="./", config_name="tst_config")
@@ -34,7 +32,6 @@ def main(config: "DictConfig"):
     train_dataset, val_dataset, test_dataset = \
         make_text_style_transfer_datasets(config)
     config.style_classifier = get_style_classifier('train', config)
-    print(config.style_classifier)
     print('Train Size:', len(train_dataset))
     print('Examples:', train_dataset[:5])
     print('Val Size', len(val_dataset))

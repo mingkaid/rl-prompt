@@ -1,8 +1,6 @@
 import os
-import sys
-sys.path.append('../..')
 import hydra
-from omegaconf import DictConfig, omegaconf
+from omegaconf import DictConfig, OmegaConf
 
 from rlprompt.models import (LMAdaptorModelConfig, SinglePromptModelConfig,
                              make_lm_adaptor_model, make_single_prompt_model)
@@ -21,10 +19,10 @@ from fsc_helpers import (PromptedClassificationRewardConfig,
 config_list = [PromptedClassificationRewardConfig,
                 FewShotClassificationDatasetConfig, LMAdaptorModelConfig,
                 SinglePromptModelConfig, SQLModuleConfig, TrainerConfig]
-cs = compose_hydra_config_store('base_fsc', configs)
+cs = compose_hydra_config_store('base_fsc', config_list)
 
 
-@hydra.main(version_base=None, config_path="./", config_name="config")
+@hydra.main(version_base=None, config_path="./", config_name="fsc_config")
 def main(config: "DictConfig"):
     colorful_print(OmegaConf.to_yaml(config), fg='red')
     output_dir = get_hydra_output_dir()
