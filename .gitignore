@@ -3,3 +3,4 @@
 *outputs
 *.pyc
 *.ipynb_checkpoints
+*ppl

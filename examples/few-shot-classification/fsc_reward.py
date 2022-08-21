@@ -136,7 +136,7 @@ class PromptedClassificationReward(BaseReward):
                 class_example_probs = class_probs[class_example_idx, :].tolist()
                 class_example_probs = [round(prob, 2) \
                                        for prob in class_example_probs]
-                print_strs += ['Class', c, '|', 
+                print_strs += ['Class', c, 'Example:', 
                                class_example, '|',
                                'Probs:', class_example_probs, '\n']
             print_strs += ['Accuracy:', acc.item(), '|',

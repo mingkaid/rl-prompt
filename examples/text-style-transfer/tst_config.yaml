@@ -4,10 +4,12 @@ defaults:
   - _self_
 # Data
 dataset: "yelp"
+dataset_seed: null
 direction: "1_to_0"
 # Reward
-style_classifier_path: "./style_classifiers/yelp-bert-base-uncased-train"
+style_tokenizer: "bert-base-uncased"
 lower_outputs: true
+control_output_length: true
 # Single Prompt Model
 prompt_train_batch_size: 8
 prompt_infer_batch_size: 16
@@ -20,7 +22,6 @@ reward_shaping_new_min: -20
 reward_shaping_new_max: 80
 top_k: 50
 # Trainer
-save_dir: "./tst_test_outputs"
 train_batch_size: 2
 max_train_steps: 12000
 train_shuffle: false
