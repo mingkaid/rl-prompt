@@ -5,10 +5,10 @@ For Shakespeare, we test for [few-shot text style transfer](https://arxiv.org/ab
 Specifically, we provide 3 different training sets and their corresponding style classifiers.
 
 **Content**
-- [Setup](https://github.com/mingkaid/rl-prompt/tree/modular-interface/examples/text-style-transfer#setup)
-- [Training Prompts for Style Transfer](https://github.com/mingkaid/rl-prompt/tree/modular-interface/examples/text-style-transfer#training-prompts-for-style-transfer)
-- [Using Your Own Data](https://github.com/mingkaid/rl-prompt/tree/modular-interface/examples/text-style-transfer#using-your-own-data)
-- [Evaluation](https://github.com/mingkaid/rl-prompt/tree/modular-interface/examples/text-style-transfer#evaluation)
+- [Setup](https://github.com/mingkaid/rl-prompt/tree/main/examples/text-style-transfer#setup)
+- [Training Prompts for Style Transfer](https://github.com/mingkaid/rl-prompt/tree/main/examples/text-style-transfer#training-prompts-for-style-transfer)
+- [Using Your Own Data](https://github.com/mingkaid/rl-prompt/tree/main/examples/text-style-transfer#using-your-own-data)
+- [Evaluation](https://github.com/mingkaid/rl-prompt/tree/main/examples/text-style-transfer#evaluation)
 
 ## Setup
 
