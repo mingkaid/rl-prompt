@@ -42,6 +42,8 @@ python run_tst.py \
     direction=[0_to_1, 1_to_0] \
     task_lm=[distilgpt2, gpt2, gpt2-medium, gpt2-large, gpt2-xl] \
     lower_outputs=[true, false] \
+    prompt_length=[any integer (optional, default:5)] \
+    max_decoding_length=[same integer as prompt_length (optional)] \
     random_seed=[any integer (optional)]
 ```
 The checkpoints and output prompts are saved at `outputs/[experiment-date]/[experiment-time]`
