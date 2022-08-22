@@ -7,7 +7,7 @@ python run_fsc.py \
     dataset_seed=[0, 1, 2, 3, 4] \
     task_lm=[distilroberta-base, roberta-base, roberta-large, \
              distilgpt2, gpt2, gpt2-medium, gpt2-large, gpt2-xl] \
-    random_seed=[any integer (Optional RL seed)]
+    random_seed=[any integer (Optional RL Seed)]
 ```
 
 ## Evaluation
