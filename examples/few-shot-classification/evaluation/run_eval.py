@@ -1,4 +1,6 @@
 import hydra
+import sys
+sys.path.append("..")
 from omegaconf import OmegaConf
 from torch.utils.data import DataLoader
 
