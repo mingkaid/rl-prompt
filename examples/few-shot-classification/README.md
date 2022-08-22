@@ -19,7 +19,7 @@ python run_eval.py \
     dataset=[sst-2, yelp-2, mr, cr, agnews, sst-5, yelp-5] \
     task_lm=[distilroberta-base, roberta-base, roberta-large, \
              distilgpt2, gpt2, gpt2-medium, gpt2-large, gpt2-xl] \
-    prompt=[any prompt in string form]
+    prompt=[any prompt in string form, e.g. "Absolutely"]
 ```
 
 For a quick start, you may try the following examples: 
