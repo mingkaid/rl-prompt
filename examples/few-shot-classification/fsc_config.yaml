@@ -26,4 +26,6 @@ eval_steps: 10
 save_steps: 100
 learning_rate: 5e-5
 random_seed: null
-
+# Prompt Length
+prompt_length: 5
+max_decoding_length: 5
