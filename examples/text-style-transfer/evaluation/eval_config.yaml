@@ -7,8 +7,8 @@ dataset: "???"
 dataset_seed: null
 base_path: "../data"
 # Evaluation
-prompt_0_to_1: ""
-prompt_1_to_0: ""
+prompt_0_to_1: null
+prompt_1_to_0: null
 # Reward
 task_lm: "distilgpt2"
 style_tokenizer: "bert-base-uncased"

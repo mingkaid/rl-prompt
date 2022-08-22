@@ -3,9 +3,9 @@ defaults:
   - base_tst
   - _self_
 # Data
-dataset: "yelp"
+dataset: "???"
 dataset_seed: null
-direction: "1_to_0"
+direction: "???"
 # Reward
 style_tokenizer: "bert-base-uncased"
 lower_outputs: true
@@ -29,5 +29,5 @@ eval_batch_size: 16
 eval_steps: 50
 save_steps: 100
 learning_rate: 5e-5
-random_seed: 2
+random_seed: null
 

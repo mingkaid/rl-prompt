@@ -1,5 +1,6 @@
 torch
 numpy
+pandas
 typing
 wandb
 transformers

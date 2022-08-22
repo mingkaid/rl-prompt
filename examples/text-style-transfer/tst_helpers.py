@@ -17,7 +17,7 @@ def make_text_style_transfer_datasets(
     label = int(config.direction[0])
     data_dict = {}
     for split in ['train', 'dev', 'test']: 
-        # Hack - Only use 16 examples for Yelp validation
+        # Hack - Only use 16 examples for Yelp validation to save time
         if config.dataset == "yelp" and split == 'dev': 
             max_size = 16
         else: 
@@ -54,7 +54,7 @@ def load_text_style_transfer_test_data(config: "DictConfig"):
 
     return source_texts, target_labels, ref_texts
 
-
+# Key: (dataset, dataset_seed, split)
 style_classifier_dict = {
     ('yelp', None, 'train'): './style_classifiers/yelp-bert-base-uncased-train/',
     ('yelp', None, 'test'): './style_classifiers/yelp-bert-base-uncased-test/',

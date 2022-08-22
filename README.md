@@ -16,15 +16,15 @@ We will keep updating the codebase for easier usage and adaptation for your own 
 
 ![](figure.png)
 
-## Setting Up (Minimal)
+## Setting Up
 
-To run the codebase, we provide a minimal set of required configurations: 
+Our codebase requires the following Python and PyTorch versions: 
 * Python >= 3.7
 * PyTorch >= 1.10.1 (install from the [official website](https://pytorch.org/get-started/locally/))
 
-Install other libraries by
+Install our core modules with
 ```
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ## Usage

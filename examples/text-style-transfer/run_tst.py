@@ -31,7 +31,6 @@ def main(config: "DictConfig"):
 
     train_dataset, val_dataset, test_dataset = \
         make_text_style_transfer_datasets(config)
-    config.style_classifier = get_style_classifier('train', config)
     print('Train Size:', len(train_dataset))
     print('Examples:', train_dataset[:5])
     print('Val Size', len(val_dataset))
@@ -39,6 +38,8 @@ def main(config: "DictConfig"):
 
     policy_model = make_lm_adaptor_model(config)
     prompt_model = make_single_prompt_model(policy_model, config)
+    if config.style_classifier == "???":
+        config.style_classifier = get_style_classifier('train', config)
     reward = make_prompted_text_style_transfer_reward(config)
     algo_module = make_sql_module(prompt_model, reward, config)
 

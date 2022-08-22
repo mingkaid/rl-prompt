@@ -61,7 +61,7 @@ def main(config: "DictConfig"):
     all_styles = []
     for direction, prompt in zip(['0_to_1', '1_to_0'],
                                  [config.prompt_0_to_1, config.prompt_1_to_0]):
-        if len(prompt) == 0:
+        if prompt is None:
             continue  # Skip direction if prompt not supplied
         print('Direction:', direction, 'Prompt:', prompt)
         config.direction = direction
