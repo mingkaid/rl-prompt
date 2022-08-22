@@ -136,7 +136,7 @@ class PromptedClassificationReward(BaseReward):
             # Print examples
             print_strs = [self._counter, '|', prompt, '\n']
             for c in range(self.num_classes):
-                class_example_idx = (np.array(class_labels) == c)[0]
+                class_example_idx = np.where(np.array(class_labels) == c)[0][0]
                 class_example = formatted_templates[class_example_idx]
                 class_example_probs = class_probs[class_example_idx, :].tolist()
                 class_example_probs = [round(prob, 2) \
