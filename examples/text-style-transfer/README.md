@@ -27,11 +27,9 @@ The `100` and `0,1,2` for `shakespeare` refer to the training data size and the 
 ## Running Experiments (Basic)
 
 After that, you can run the experiment with the command below. Below are the explanations for some important parameters: 
-- `dataset_seed`: The random seed of Shakespeare training sets. Right now we have 3 static sets to choose from. Skip this for Yelp
-- `direction`: `0_to_1` refers to negative-to-positive for Yelp and old-to-modern for Shakespeare, whereas `1_to_0` means the opposite
-- `task_lm`: The pretrained LM used for text generation
+- `dataset_seed`: The random seed of Shakespeare training sets. Skip this for Yelp
+- `direction`: `0_to_1` refers to negative-to-positive for Yelp and old-to-modern for Shakespeare, while `1_to_0` means the opposite
 - `lower_outputs`: Whether to manually set outputs to lower case. Due to dataset properties, we set it to `true` for Yelp and `false` for Shakespeare
-- `random_seed`: Random seed for initialization and sampling
 ```
 python run_tst.py \
     dataset=[yelp, shakespeare] \

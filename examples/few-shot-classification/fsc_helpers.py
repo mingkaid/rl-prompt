@@ -105,14 +105,15 @@ def make_prompted_classification_reward(
     config: "DictConfig") -> PromptedClassificationReward:
     return PromptedClassificationReward(config.task_lm, config.is_mask_lm, 
                                         config.compute_zscore, 
-                                        config.incorrect_coeff, config.correct_coeff,
+                                        config.incorrect_coeff, 
+                                        config.correct_coeff,
                                         num_classes, verbalizers, template)
 
 
 @dataclass
 class PromptedClassificationRewardConfig:
     task_lm: str = 'distilroberta-base'
-    is_mask_lm: bool = True
+    is_mask_lm: Optional[bool] = None
     compute_zscore: bool = True
     incorrect_coeff: float = 180.0
     correct_coeff: float = 200.0

@@ -17,7 +17,7 @@ class PromptedClassificationEvaluator:
     def __init__(
         self,
         task_lm: str,
-        is_mask_lm: bool,
+        is_mask_lm: Optional[bool],
         num_classes: int,
         verbalizers: List[str],
         template: Optional[str],
@@ -28,8 +28,11 @@ class PromptedClassificationEvaluator:
                                    else "cpu")
         self.task_lm = task_lm
         print("Task LM:", self.task_lm)
-
-        self.is_mask_lm = True if 'bert' in self.task_lm else False
+        if is_mask_lm is None: 
+            # If False, then treat as left-to-right LM
+            self.is_mask_lm = True if 'bert' in self.task_lm else False
+        else:
+            self.is_mask_lm = is_mask_lm  
         if self.is_mask_lm:
             assert self.task_lm in SUPPORTED_MASK_LMS
             self._tokenizer = AutoTokenizer.from_pretrained(self.task_lm)

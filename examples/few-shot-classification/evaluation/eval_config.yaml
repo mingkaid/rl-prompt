@@ -6,4 +6,5 @@ dataset: "???"
 dataset_seed: 0
 # Reward
 task_lm: "roberta-large"
+is_mask_lm: null
 prompt: "???"

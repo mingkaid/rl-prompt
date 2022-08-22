@@ -14,7 +14,7 @@ class PromptedClassificationReward(BaseReward):
     def __init__(
         self,
         task_lm: str,
-        is_mask_lm: bool,
+        is_mask_lm: Optional[bool],
         compute_zscore: bool,
         incorrect_coeff: float, # lambda_1 in paper
         correct_coeff: float, # lambda_2 in paper
@@ -26,7 +26,11 @@ class PromptedClassificationReward(BaseReward):
         self.device = torch.device("cuda" if torch.cuda.is_available()
                                    else "cpu")
         self.task_lm = task_lm
-        self.is_mask_lm = is_mask_lm  # If False, then treat as left-to-right LM
+        if is_mask_lm is None: 
+            # If False, then treat as left-to-right LM
+            self.is_mask_lm = True if 'bert' in self.task_lm else False
+        else:
+            self.is_mask_lm = is_mask_lm  
         print('Task LM:', self.task_lm)
         if self.is_mask_lm:
             assert self.task_lm in SUPPORTED_MASK_LMS

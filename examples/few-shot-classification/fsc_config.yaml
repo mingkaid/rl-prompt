@@ -5,7 +5,7 @@ defaults:
 # Data
 num_shots: 16
 base_path: "./data"
-dataset: "sst-2"
+dataset: "???"
 dataset_seed: 0
 # Reward
 task_lm: "roberta-large"
@@ -25,5 +25,5 @@ train_shuffle: false
 eval_steps: 10
 save_steps: 100
 learning_rate: 5e-5
-random_seed: 0
+random_seed: null
 

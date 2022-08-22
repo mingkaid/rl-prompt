@@ -33,11 +33,12 @@ def main(config: "DictConfig"):
         template = "<mask> {prompt} {sentence_1}"
     else: 
         template = None
-    # just some examples, e.g. Alert Blog Dialogue Diary Accountability (82% for agnews)
-    # e.g.2. Absolutely VERY absolute VERY absolute (92% for sst-2)
+    # Below are some example prompts:
+    # Alert Blog Dialogue Diary Accountability (82% for agnews)
+    # Absolutely VERY absolute VERY absolute (92% for sst-2)
     tester = PromptedClassificationEvaluator(
         task_lm=config.task_lm,
-        is_mask_lm=is_mask_lm,
+        is_mask_lm=config.is_mask_lm,
         num_classes=num_classes,
         verbalizers=verbalizers,
         template=template,
