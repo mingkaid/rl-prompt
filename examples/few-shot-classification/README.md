@@ -9,7 +9,7 @@ python run_fsc.py \
              distilgpt2, gpt2, gpt2-medium, gpt2-large, gpt2-xl] \
     prompt_length=[any integer (optional, default:5)] \
     max_decoding_length=[same integer as prompt_length (optional)] \
-    random_seed=[any integer (Optional RL Seed)]
+    random_seed=[any integer (optional)]
 ```
 
 ## Evaluation
