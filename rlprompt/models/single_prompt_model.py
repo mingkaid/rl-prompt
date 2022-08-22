@@ -29,6 +29,7 @@ class SinglePromptModel(BaseModel):
         top_k: Optional[int],
         top_p: Optional[float],
         num_beams: Optional[int],
+        max_new_tokens: Optional[int] = None,
         infer: bool = False,
         **kwargs
     ) -> Dict[str, Any]:
@@ -38,11 +39,14 @@ class SinglePromptModel(BaseModel):
             batch_size = self.prompt_train_batch_size
         prompt_source = self._get_prompt_source(batch_size=batch_size)
 
+        if max_new_tokens is None: 
+            max_new_tokens = self.prompt_length
         return self._model.generate(source_texts=prompt_source,
                                     do_sample=do_sample,
                                     top_k=top_k,
                                     top_p=top_p,
                                     num_beams=num_beams,
+                                    max_new_tokens=max_new_tokens,
                                     **kwargs)
 
     def teacher_forcing(

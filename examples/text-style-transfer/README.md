@@ -35,17 +35,19 @@ After that, you can run the experiment with the command below. Below are the exp
 - `dataset_seed`: The random seed of Shakespeare training sets. Skip this for Yelp
 - `direction`: `0_to_1` refers to negative-to-positive for Yelp and old-to-modern for Shakespeare, while `1_to_0` means the opposite
 - `lower_outputs`: Whether to manually set outputs to lower case. Due to dataset properties, we set it to `true` for Yelp and `false` for Shakespeare
+
+You can find additional hyperparameters in `tst_config.yaml` and the default configs imported by `run_tst.py`.
 ```
 python run_tst.py \
     dataset=[yelp, shakespeare] \
     dataset_seed=[0, 1, 2 (optional)] \
     direction=[0_to_1, 1_to_0] \
+    prompt_length=[any integer (optional, default:5)] \
     task_lm=[distilgpt2, gpt2, gpt2-medium, gpt2-large, gpt2-xl] \
     lower_outputs=[true, false] \
-    prompt_length=[any integer (optional, default:5)] \
-    max_decoding_length=[same integer as prompt_length (optional)] \
     random_seed=[any integer (optional)]
 ```
+
 The checkpoints and output prompts are saved at `outputs/[experiment-date]/[experiment-time]`
 
 
@@ -79,10 +81,10 @@ After that, you can run the evaluation script with the command below
 ```
 cd evaluation
 python run_eval.py \
-    prompt_0_to_1=[optional, learned prompt for the 0_to_1 direction] \
-    prompt_1_to_0=[optional, learned prompt for the 1_to_0 direction] \
     dataset=[yelp, shakespeare] \
-    dataset_seed=[optional, 0, 1, or 2 if dataset == shakespeare] \
-    task_lm=[distilgpt2, gpt2, gpt2-medium, gpt2-large, gpt2-xl]
+    dataset_seed=[0, 1, 2 (skip for yelp)] \
+    task_lm=[distilgpt2, gpt2, gpt2-medium, gpt2-large, gpt2-xl] \
+    prompt_0_to_1=[learned prompt for the 0_to_1 direction (optional)] \
+    prompt_1_to_0=[learned prompt for the 1_to_0 direction (optional)]
 ```
 The outputs will be saved at `evaluation/outputs/[evaluation-date]/[evaluation-time]`

@@ -9,8 +9,8 @@ dataset: "???"
 dataset_seed: 0
 # Reward
 task_lm: "roberta-large"
-# LM Adaptor Model
 # Single Prompt Model
+prompt_length: 5
 prompt_train_batch_size: 16
 prompt_infer_batch_size: 1
 # SQL Module
@@ -26,6 +26,3 @@ eval_steps: 10
 save_steps: 100
 learning_rate: 5e-5
 random_seed: null
-# Prompt Length
-prompt_length: 5
-max_decoding_length: 5
