@@ -4,10 +4,8 @@ sys.path.append("..")
 from omegaconf import OmegaConf
 from torch.utils.data import DataLoader
 
-from rlprompt.utils.utils import colorful_print, compose_hydra_config_store
-from fsc_helpers import (PromptedClassificationDataset,
-                         make_few_shot_classification_dataset,
-                         load_few_shot_classification_dataset,
+from rlprompt.utils.utils import colorful_print
+from fsc_helpers import (make_few_shot_classification_dataset,
                          get_dataset_verbalizers)
 from fsc_evaluator import PromptedClassificationEvaluator
 
