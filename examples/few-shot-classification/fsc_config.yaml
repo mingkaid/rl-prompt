@@ -1,0 +1,28 @@
+# Few-Shot Classification Config
+defaults:
+ - base_fsc
+ - _self_
+# Data
+num_shots: 16
+base_path: "./data"
+dataset: "???"
+dataset_seed: 0
+# Reward
+task_lm: "roberta-large"
+# Single Prompt Model
+prompt_length: 5
+prompt_train_batch_size: 16
+prompt_infer_batch_size: 1
+# SQL Module
+reward_shaping_old_min: 0
+reward_shaping_old_max: 1
+reward_shaping_new_min: 0
+reward_shaping_new_max: 5
+top_k: 256
+# Trainer
+max_train_steps: 12000
+train_shuffle: false
+eval_steps: 10
+save_steps: 100
+learning_rate: 5e-5
+random_seed: null

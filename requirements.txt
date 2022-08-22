@@ -1,0 +1,7 @@
+torch
+numpy
+pandas
+typing
+wandb
+transformers
+hydra-core==1.2.0
