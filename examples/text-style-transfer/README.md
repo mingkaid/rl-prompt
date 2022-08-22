@@ -4,6 +4,12 @@ We experiment on Yelp for sentiment and Shakespeare for authorship transfer, res
 For Shakespeare, we test for [few-shot text style transfer](https://arxiv.org/abs/2010.03802) by only training on 100 examples per style. 
 Specifically, we provide 3 different training sets and their corresponding style classifiers.
 
+**Content**
+- [Setup](https://github.com/mingkaid/rl-prompt/tree/modular-interface/examples/text-style-transfer#setup)
+- [Running Experiments](https://github.com/mingkaid/rl-prompt/tree/modular-interface/examples/text-style-transfer#running-experiments)
+- [Using Your Own Data](https://github.com/mingkaid/rl-prompt/tree/modular-interface/examples/text-style-transfer#using-your-own-data)
+- [Evaluation](https://github.com/mingkaid/rl-prompt/tree/modular-interface/examples/text-style-transfer#evaluation)
+
 ## Setup
 
 In addition to the dependencies for RLPrompt, you can install the additional dependencies for text style transfer with
@@ -11,9 +17,9 @@ In addition to the dependencies for RLPrompt, you can install the additional dep
 pip install -r requirements.txt
 ```
 
-## Download Pretrained Style Classifiers
+## Training Prompts for Style Transfer
 
-You can download the style classifiers for training by running the script below
+You can download the pretrained style classifiers for training by running the script below
 ```
 python download_tst_classifiers.py \
     --model_name [yelp-train,
@@ -24,7 +30,6 @@ python download_tst_classifiers.py \
 
 The `100` and `0,1,2` for `shakespeare` refer to the training data size and the random seed we used to sample the training data, respectively. 
 
-## Running Experiments (Basic)
 
 After that, you can run the experiment with the command below. Below are the explanations for some important parameters: 
 - `dataset_seed`: The random seed of Shakespeare training sets. Skip this for Yelp
@@ -59,7 +64,7 @@ We load our data using the `load_text_style_transfer_dataset()` function in the 
 
 ## Evaluation
 
-### Download Pretrained Evaluation Models
+### Download Pretrained Test Classifiers
 You can download the evaluation style classifiers with the following command
 ```
 python download_tst_classifiers.py --model_name [yelp_test, shakespeare_test_all]
