@@ -1,19 +1,9 @@
 import sys
+sys.path.append('..')
 import hydra
 from typing import Optional, Tuple, List
-sys.path.append('..')
 import numpy as np
-import pandas as pd
-from fsc_helpers import (PromptedClassificationDataset,
-                         make_few_shot_classification_dataset,
-                         load_few_shot_classification_dataset,
-                         get_dataset_verbalizers)
-from rlprompt.utils.utils import colorful_print
-from omegaconf import DictConfig, OmegaConf
-from torch.utils.data import Dataset, DataLoader
-import click
 import torch
-import os
 from transformers import (AutoTokenizer,
                           GPT2LMHeadModel,
                           AutoModelForMaskedLM)
@@ -23,15 +13,15 @@ SUPPORTED_LEFT_TO_RIGHT_LMS = ['distilgpt2', 'gpt2', 'gpt2-medium',
 SUPPORTED_MASK_LMS = ['distilroberta-base', 'roberta-base', 'roberta-large']
 
 
-class PromptedClassificationEvaluation(object):
+class PromptedClassificationEvaluator:
     def __init__(
-            self,
-            task_lm: str,
-            is_mask_lm: bool,
-            num_classes: int,
-            verbalizers: List[str],
-            template: Optional[str],
-            prompt: str
+        self,
+        task_lm: str,
+        is_mask_lm: bool,
+        num_classes: int,
+        verbalizers: List[str],
+        template: Optional[str],
+        prompt: str
     ):
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available()
@@ -138,40 +128,3 @@ class PromptedClassificationEvaluation(object):
             correct_sum += label_agreement.sum()
         accuracy = correct_sum/num_of_examples
         return accuracy
-
-
-@hydra.main(version_base=None, config_path="./", config_name="eval_config")
-def main(config: "DictConfig"):
-    colorful_print(OmegaConf.to_yaml(config), fg='red')
-
-    (train_dataset, val_dataset, test_dataset,
-     num_classes, verbalizers, template) = \
-        make_few_shot_classification_dataset(config)
-    print('Test Size', len(test_dataset))
-    print('Examples:', test_dataset[:5])
-    test_loader = DataLoader(test_dataset,
-                             shuffle=False,
-                             batch_size=32,
-                             drop_last=False)
-
-    is_mask_lm = True if 'bert' in config.task_lm else False
-    verbalizers = get_dataset_verbalizers(config.dataset)
-    num_classes = len(verbalizers)
-    template = "<mask> {prompt} {sentence_1}" if config.dataset == 'agnews' and is_mask_lm else None
-    # just some examples, e.g. Alert Blog Dialogue Diary Accountability (82% for agnews)
-    prompt = "Absolutely VERY absolute VERY absolute"
-    tester = PromptedClassificationEvaluation(
-        task_lm=config.task_lm,
-        is_mask_lm=is_mask_lm,
-        num_classes=num_classes,
-        verbalizers=verbalizers,
-        template=template,
-        prompt=prompt
-    )
-
-    acc = tester.forward(test_loader)
-    print(click.style(f"prompt: {prompt}, accuracy: {acc}", fg="red"))
-
-
-if __name__ == "__main__":
-    main()
