@@ -106,7 +106,8 @@ class PromptedClassificationReward(BaseReward):
             label_probs = class_probs[range(batch_size), class_labels]
             # [batch_size, 1]
             not_label_probs = torch.where(\
-                class_probs == label_probs.unsqueeze(1), torch.Tensor([-1]).to(self.device), class_probs)
+                class_probs == label_probs.unsqueeze(1), \
+                torch.Tensor([-1]).to(self.device), class_probs)
             # [batch_size, num_classes]
             max_not_label_probs, _ = torch.max(not_label_probs, -1)
             # [batch_size, 1]
