@@ -163,8 +163,8 @@ class PromptedTextStyleTransferReward(BaseReward):
         input_reward_stds = {k: np.std(v) for k, v in input_rewards.items()}
         idx_means = torch.tensor([input_reward_means[s] for s in input_texts])
         idx_stds = torch.tensor([input_reward_stds[s] for s in input_texts])
-        print(idx_means)
-        print(idx_stds)
+        # print(idx_means)
+        # print(idx_stds)
         return (rewards_tensor - idx_means.float()) / (idx_stds.float() + eps)
 
     def _boostrap_max_rewards_k_times(

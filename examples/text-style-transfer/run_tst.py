@@ -38,8 +38,7 @@ def main(config: "DictConfig"):
 
     policy_model = make_lm_adaptor_model(config)
     prompt_model = make_single_prompt_model(policy_model, config)
-    if config.style_classifier == "???":
-        config.style_classifier = get_style_classifier('train', config)
+    config.style_classifier = get_style_classifier('train', config)
     reward = make_prompted_text_style_transfer_reward(config)
     algo_module = make_sql_module(prompt_model, reward, config)
 
