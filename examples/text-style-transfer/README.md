@@ -40,7 +40,7 @@ You can find additional hyperparameters in `tst_config.yaml` and the default con
 ```
 python run_tst.py \
     dataset=[yelp, shakespeare] \
-    dataset_seed=[0, 1, 2 (optional)] \
+    dataset_seed=[0, 1, 2 (optional, skip for yelp)] \
     direction=[0_to_1, 1_to_0] \
     prompt_length=[any integer (optional, default:5)] \
     task_lm=[distilgpt2, gpt2, gpt2-medium, gpt2-large, gpt2-xl] \
