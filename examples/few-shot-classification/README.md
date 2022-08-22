@@ -26,5 +26,5 @@ For a quick start, you may try the following examples:
 
 | Model | Prompt | Dataset | Accuracy (%) | 
 | ------ | ------- | ------------ | ---------- |
-| Roberta-large | Absolutely VERY absolute VERY absolute | SST-2 | 92.7 |
-| Roberta-large | Alert Blog Dialogue Diary Accountability | AG News | 82.0 |
+| roberta-large | Absolutely VERY absolute VERY absolute | SST-2 | 92.7 |
+| roberta-large | Alert Blog Dialogue Diary Accountability | AG News | 82.0 |
