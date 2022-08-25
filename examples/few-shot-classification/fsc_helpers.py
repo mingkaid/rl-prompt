@@ -87,6 +87,26 @@ def get_dataset_verbalizers(dataset: str) -> List[str]:
     elif dataset in ['sst-5', 'yelp-5']:
         verbalizers = ['\u0120terrible', '\u0120bad', '\u0120okay', 
                        '\u0120good', '\u0120great'] # num_classes
+    elif dataset == 'subj':
+        verbalizers = ['\u0120subjective', '\u0120objective']
+    elif dataset == 'trec':
+        verbalizers = ['\u0120Description', '\u0120Entity',
+                    '\u0120Expression', '\u0120Human',
+                    '\u0120Location', '\u0120Number']
+    elif dataset == 'yahoo':
+        verbalizers = ['culture', 'science',
+                    'health', 'education',
+                    'computer', 'sports',
+                    'business', 'music',
+                    'family', 'politics']
+    elif dataset == 'dbpedia':
+        verbalizers = ['\u0120Company', '\u0120Education',
+                    '\u0120Artist', '\u0120Sports',
+                    '\u0120Office', '\u0120Transportation',
+                    '\u0120Building', '\u0120Natural',
+                    '\u0120Village', '\u0120Animal',
+                    '\u0120Plant', '\u0120Album',
+                    '\u0120Film', '\u0120Written']
     return verbalizers
 
 
