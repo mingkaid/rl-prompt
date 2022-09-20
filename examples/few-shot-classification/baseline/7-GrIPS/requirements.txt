@@ -1,0 +1,9 @@
+nltk==3.6.2
+numpy==1.21.1
+openai==0.11.0
+scikit_learn==1.0.2
+scipy==1.7.0
+supar==1.1.2
+torch==1.11.0
+tqdm==4.62.3
+transformers==4.17.0

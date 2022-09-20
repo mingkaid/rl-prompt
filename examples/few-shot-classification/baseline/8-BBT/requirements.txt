@@ -1,0 +1,5 @@
+transformers==4.1.1
+datasets==2.2.3.dev0
+fastNLP==0.7.0
+cma==3.2.2
+scikit-learn==1.1.1
