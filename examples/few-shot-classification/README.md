@@ -32,3 +32,4 @@ For a quick start, you may try the following examples:
 | agnews | roberta-large | Alert Blog Dialogue Diary Accountability | 82.0 |
 | dbpedia | roberta-large | CommonExamplesSenate Similar comparable | 86.1 |
 | subj | roberta-large | BufferActionDialogDialog downright | 84.6 |
+| yahoo | roberta-large | AlertSource mentioning Besidesadays | 49.7 |
