@@ -28,7 +28,7 @@ For a quick start, you may try the following examples:
 
 | Dataset | Model | Prompt | Accuracy (%) | 
 | --- | --- | --- | --- | 
-| sst-2 | roberta-large | Absolutely VERY absolute VERY absolute | 92.7 |
+| sst-2 | roberta-large | AgentMediaGradeOfficials Grade | 94.2 |
 | agnews | roberta-large | Alert Blog Dialogue Diary Accountability | 82.0 |
 | dbpedia | roberta-large | CommonExamplesSenate Similar comparable | 86.1 |
 | subj | roberta-large | BufferActionDialogDialog downright | 84.6 |
