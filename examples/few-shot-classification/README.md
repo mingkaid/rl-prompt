@@ -22,7 +22,7 @@ python run_eval.py \
     task_lm=[distilroberta-base, roberta-base, roberta-large, \
              distilgpt2, gpt2, gpt2-medium, gpt2-large, gpt2-xl] \
     prompt=[any prompt in string form, e.g. "Absolutely", \
-    and for a special case for leading whitespace prompt, \
+    and for a special case of leading whitespace prompt, \
     we have to use "prompt=\" Absolutely\"" instead]
 ```
 
