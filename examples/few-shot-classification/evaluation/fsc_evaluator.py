@@ -35,7 +35,8 @@ class PromptedClassificationEvaluator:
             self.is_mask_lm = is_mask_lm  
         if self.is_mask_lm:
             assert self.task_lm in SUPPORTED_MASK_LMS
-            self._tokenizer = AutoTokenizer.from_pretrained(self.task_lm)
+            self._tokenizer = AutoTokenizer.from_pretrained(self.task_lm,
+                                truncation_side="left")
             self._generator = (AutoModelForMaskedLM
                                .from_pretrained(self.task_lm)
                                .to(self.device))
@@ -44,7 +45,8 @@ class PromptedClassificationEvaluator:
             self._tokenizer = AutoTokenizer.from_pretrained(
                 self.task_lm, pad_token='<|endoftext|>')
             self._generator = (GPT2LMHeadModel
-                               .from_pretrained(self.task_lm)
+                               .from_pretrained(self.task_lm,
+                                   truncation_side="left")
                                .to(self.device))
             self._generator.config.pad_token_id = self._tokenizer.pad_token_id
         self.num_classes = num_classes
