@@ -38,7 +38,7 @@ class TextClassificationProcessor(DataProcessor):
         """See base class."""
         if self.task_name == "sst-2" or self.task_name == "mr" or self.task_name == "cr" or self.task_name == "yelp-2":
             return list(range(2))
-        elif self.task_name == "sst-5" or "yelp-5":
+        elif self.task_name == "sst-5" or self.task_name == "yelp-5":
             return list(range(5))
         elif self.task_name == "agnews":
             return list(range(4))
@@ -47,7 +47,7 @@ class TextClassificationProcessor(DataProcessor):
         elif self.task_name == "dbpedia":
             return list(range(14))
         elif self.task_name == "subj":
-            return list(map(str, range(2)))
+            return list(range(2))
         elif self.task_name == "trec":
             return list(range(6))
         else:

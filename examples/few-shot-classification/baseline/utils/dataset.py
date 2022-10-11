@@ -244,16 +244,7 @@ def tokenize_multipart_input(
         input_ids = input_ids[:max_length]
         attention_mask = attention_mask[:max_length]
         token_type_ids = token_type_ids[:max_length]
-    
-    # # Truncate
-    # if len(input_ids) > max_length:
-    #     if truncate_head:
-    #         input_ids = input_ids[-max_length:]
-    #         attention_mask = attention_mask[-max_length:]
-    #         token_type_ids = token_type_ids[-max_length:]
-    #     else:
-
-    
+        
     # Find mask token
     try:
         if prompt:

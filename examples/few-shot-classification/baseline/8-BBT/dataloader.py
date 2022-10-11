@@ -10,6 +10,23 @@ import pdb
 
 dataset_dir = "../../data/16-shot/{data_name}/16-{seed}"
 
+def read_dataset(data_dir):
+    def create_dataset(lines):
+        examples = {}
+        examples['sentence'] = [line[0] for line in lines]
+        examples['label']    = [line[1] for line in lines]
+        dataset = Dataset.from_dict(examples)
+        return dataset
+    
+    train = create_dataset(pd.read_csv(os.path.join(data_dir, "train.tsv"), sep='\t').values.tolist())
+    valid = create_dataset(pd.read_csv(os.path.join(data_dir, "dev.tsv"), sep='\t').values.tolist())
+    test  = create_dataset(pd.read_csv(os.path.join(data_dir, "test.tsv"), sep='\t').values.tolist())
+    return DatasetDict({
+        'train': train,
+        'test': test,
+        'validation': valid
+    })
+
 def convert_to_features(example_batch, tokenizer, n_prompt_tokens):
     input_encodings = tokenizer.batch_encode_plus(example_batch['input_text'])
     # target_encodings = tokenizer.batch_encode_plus(example_batch['target_text'], add_special_tokens=False)
@@ -100,8 +117,7 @@ class Sentiment2Loader(Loader):
         # [TODO]
         print(f'==> Read Data /{self.data_name}/16-{self.seed}')
         dataset_folder = os.path.abspath(dataset_dir.format(data_name=self.data_name, seed=self.seed))
-        dataset = load_dataset(dataset_folder, split=split)
-        
+        dataset = read_dataset(dataset_folder)[split]
         dataset = dataset.map(self.convert_examples, load_from_cache_file=False)
         print('Example in {} set:'.format(split))
         print(dataset[0])
@@ -172,7 +188,7 @@ class Sentiment5Loader(Loader):
         # [TODO]
         print(f'==> Read Data /{self.data_name}/16-{self.seed}')
         dataset_folder = os.path.abspath(dataset_dir.format(data_name=self.data_name, seed=self.seed))
-        dataset = load_dataset(dataset_folder, split=split)
+        dataset = read_dataset(dataset_folder)[split]
         
         dataset = dataset.map(self.convert_examples, load_from_cache_file=False)
         print('Example in {} set:'.format(split))
@@ -237,7 +253,7 @@ class AGNewsLoader(Loader):
         
         print(f'==> Read Data /{self.data_name}/16-{self.seed}')
         dataset_folder = os.path.abspath(dataset_dir.format(data_name=self.data_name, seed=self.seed))
-        dataset = load_dataset(dataset_folder, split=split)
+        dataset = read_dataset(dataset_folder)[split]
         
         dataset = dataset.map(self.convert_examples, load_from_cache_file=False)
         print('Example in {} set:'.format(split))
@@ -291,7 +307,8 @@ class TRECLoader(Loader):
             offset = 1000
             prompt = self.tokenizer.decode(list(range(offset, offset + self.n_prompt_tokens)))
             # example['input_text'] = '%s News: %s %s' % (self.tokenizer.mask_token, prompt,  example['text'])
-            example['input_text'] = '%s: %s %s' % (self.tokenizer.mask_token, prompt,  example['sentence'])
+            example['input_text'] = '%s %s %s' % (self.tokenizer.mask_token, prompt,  example['sentence'])
+            # example['input_text'] = '%s: %s %s' % (self.tokenizer.mask_token, prompt,  example['sentence'])
             example['input_text'] = truncatetail(example['input_text'], self.tokenizer)
             example['target_text'] = self.label2text[example['label']]
         else:
@@ -303,7 +320,7 @@ class TRECLoader(Loader):
         # load dataset with Huggingface's Datasets
         print(f'==> Read Data /{self.data_name}/16-{self.seed}')
         dataset_folder = os.path.abspath(dataset_dir.format(data_name=self.data_name, seed=self.seed))
-        dataset = load_dataset(dataset_folder, split=split)
+        dataset = read_dataset(dataset_folder)[split]
         
         dataset = dataset.map(self.convert_examples, load_from_cache_file=False)
         print('Example in {} set:'.format(split))
@@ -354,7 +371,8 @@ class SubjLoader(Loader):
             offset = 1000
             prompt = self.tokenizer.decode(list(range(offset, offset + self.n_prompt_tokens)))
             # example['input_text'] = '%s News: %s %s' % (self.tokenizer.mask_token, prompt,  example['text'])
-            example['input_text'] = '%s %s This is %s .' % (example['sentence'], prompt, self.tokenizer.mask_token)
+            example['input_text'] = '%s %s %s' % (example['sentence'], prompt, self.tokenizer.mask_token)
+            # example['input_text'] = '%s %s This is %s .' % (example['sentence'], prompt, self.tokenizer.mask_token)
             example['input_text'] = truncatehead(example['input_text'], self.tokenizer)
             example['target_text'] = self.label2text[example['label']]
         else:
@@ -366,7 +384,7 @@ class SubjLoader(Loader):
         # load dataset with Huggingface's Datasets
         print(f'==> Read Data /{self.data_name}/16-{self.seed}')
         dataset_folder = os.path.abspath(dataset_dir.format(data_name=self.data_name, seed=self.seed))
-        dataset = load_dataset(dataset_folder, split=split)
+        dataset = read_dataset(dataset_folder)[split]
         
         dataset = dataset.map(self.convert_examples, load_from_cache_file=False)
         print('Example in {} set:'.format(split))
@@ -413,7 +431,8 @@ class YahooLoader(Loader):
             offset = 1000
             prompt = self.tokenizer.decode(list(range(offset, offset + self.n_prompt_tokens)))
             # example['input_text'] = '%s News: %s %s' % (self.tokenizer.mask_token, prompt,  example['text'])
-            example['input_text'] = ' %s Topic %s: %s' % (prompt, self.tokenizer.mask_token, example['sentence'])
+            example['input_text'] = ' %s %s %s' % (prompt, self.tokenizer.mask_token, example['sentence'])
+            # example['input_text'] = ' %s Topic %s: %s' % (prompt, self.tokenizer.mask_token, example['sentence'])
             example['input_text'] = truncatetail(example['input_text'], self.tokenizer)
             example['target_text'] = self.label2text[example['label']]
         else:
@@ -426,7 +445,7 @@ class YahooLoader(Loader):
         # load dataset with Huggingface's Datasets
         print(f'==> Read Data /{self.data_name}/16-{self.seed}')
         dataset_folder = os.path.abspath(dataset_dir.format(data_name=self.data_name, seed=self.seed))
-        dataset = load_dataset(dataset_folder, split=split)
+        dataset = read_dataset(dataset_folder)[split]
         
         dataset = dataset.map(self.convert_examples, load_from_cache_file=False)
         print('Example in {} set:'.format(split))
@@ -474,11 +493,12 @@ class DBPediaLoader(Loader):
             offset = 1000
             prompt = self.tokenizer.decode(list(range(offset, offset + self.n_prompt_tokens)))
             # example['input_text'] = '%s News: %s %s' % (self.tokenizer.mask_token, prompt,  example['text'])
-            example['input_text'] = ' %s [Category: %s] %s' % (prompt, self.tokenizer.mask_token, example['content'])
+            example['input_text'] = ' %s %s %s' % (prompt, self.tokenizer.mask_token, example['sentence'])
+            # example['input_text'] = ' %s [Category: %s] %s' % (prompt, self.tokenizer.mask_token, example['content'])
             example['input_text'] = truncatetail(example['input_text'], self.tokenizer)
             example['target_text'] = self.label2text[example['label']]
         else:
-            example['input_text'] = '[Category: %s] %s' % (self.tokenizer.mask_token, example['content'])
+            example['input_text'] = '[Category: %s] %s' % (self.tokenizer.mask_token, example['sentence'])
             example['target_text'] = self.label2text[example['label']]
         return example
 
@@ -486,7 +506,7 @@ class DBPediaLoader(Loader):
         # load dataset with Huggingface's Datasets
         print(f'==> Read Data /{self.data_name}/16-{self.seed}')
         dataset_folder = os.path.abspath(dataset_dir.format(data_name=self.data_name, seed=self.seed))
-        dataset = load_dataset(dataset_folder, split=split)
+        dataset = read_dataset(dataset_folder)[split]
         
         dataset = dataset.map(self.convert_examples, load_from_cache_file=False)
         print('Example in {} set:'.format(split))
