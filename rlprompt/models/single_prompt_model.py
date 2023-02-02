@@ -34,7 +34,7 @@ class SinglePromptModel(BaseModel):
         **kwargs
     ) -> Dict[str, Any]:
         if infer: 
-            batch_size = self.prompt_infer_batch_size
+            batch_size = min(self.prompt_infer_batch_size, len(source_texts))
         else: 
             batch_size = self.prompt_train_batch_size
         prompt_source = self._get_prompt_source(batch_size=batch_size)
