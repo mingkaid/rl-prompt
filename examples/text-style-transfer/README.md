@@ -1,18 +1,24 @@
 # Prompted Text Style Transfer Example
 
-**Updates**: 
-- You can find the outputs for the Yelp test set in the `test_outputs` folder. We uploaded the outputs both in the natural GPT-2 format (`*.clean`) and in the typical space-delimited format (`*.raw`), which we converted from `clean` using SpaCyxw
-- You can also find the code for training and evaluating input-specific prompts in the folder `input_conditioned_prompt_experiment`, which often achieves better performance
-
-We experiment on Yelp for sentiment and Shakespeare for authorship transfer, respectively. 
-For Shakespeare, we test for [few-shot text style transfer](https://arxiv.org/abs/2010.03802) by only training on 100 examples per style. 
-Specifically, we provide 3 different training sets and their corresponding style classifiers.
-
 **Content**
 - [Setup](https://github.com/mingkaid/rl-prompt/tree/main/examples/text-style-transfer#setup)
 - [Training Prompts for Style Transfer](https://github.com/mingkaid/rl-prompt/tree/main/examples/text-style-transfer#training-prompts-for-style-transfer)
 - [Using Your Own Data](https://github.com/mingkaid/rl-prompt/tree/main/examples/text-style-transfer#using-your-own-data)
 - [Evaluation](https://github.com/mingkaid/rl-prompt/tree/main/examples/text-style-transfer#evaluation)
+
+We experiment on Yelp for sentiment and Shakespeare for authorship transfer, respectively. 
+For Shakespeare, we test for [few-shot text style transfer](https://arxiv.org/abs/2010.03802) by only training on 100 examples per style. 
+Specifically, we provide 3 different training sets and their corresponding style classifiers.
+
+**Updates**
+
+- You can find the outputs for the Yelp test set in the `test_outputs` folder. We uploaded the outputs both in the original GPT-2 format (`*.clean`) and in the typical space-delimited format (`*.raw`), which we converted from `clean` using SpaCy. Note that the outputs are not exactly the same as those that produced the results in our paper, but they are pretty close. Below is the performance of these outputs (`clean`) according to our evaluation method:
+
+    | Content | Style | Fluency | Joint | GM | BLEU | BERTScore | PPL |
+    | --- | --- | --- | --- | --- | --- | --- | --- |
+    | 74.5 | 94.3 | 89.1 | 62.2 | 85.5 | 25.7 | 60.1 | 33.4 |
+
+- You can also find the code for training and evaluating input-specific prompts in the folder `input_conditioned_prompt_experiment`, which often achieves better performance.
 
 ## Setup
 
