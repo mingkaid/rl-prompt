@@ -1,0 +1,35 @@
+# Text Style Transfer Config
+defaults:
+  - base_tst
+  - _self_
+# Data
+dataset: "???"
+dataset_seed: null
+direction: "???"
+base_path: "../data"
+# Reward
+style_tokenizer: "bert-base-uncased"
+lower_outputs: true
+control_output_length: true
+num_repeats: 4
+# Input Conditioned Prompt Model
+prompt_length: 5
+source_train_reps: 4
+source_infer_reps: 1
+# LM Adaptor Model
+logit_bias: -10
+# SQL Module
+reward_shaping_old_min: 0
+reward_shaping_old_max: 1
+reward_shaping_new_min: -20
+reward_shaping_new_max: 80
+top_k: 50
+# Trainer
+train_batch_size: 2
+max_train_steps: 12000
+train_shuffle: false
+eval_batch_size: 16
+eval_steps: 50
+save_steps: 100
+learning_rate: 5e-5
+random_seed: null

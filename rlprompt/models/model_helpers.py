@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-from rlprompt.models import BaseModel, LMAdaptorModel, SinglePromptModel
+from rlprompt.models import BaseModel, LMAdaptorModel, SinglePromptModel, InputConditionedPromptModel
 
 def make_lm_adaptor_model(config: "DictConfig") -> LMAdaptorModel:
     return LMAdaptorModel(config.policy_lm,
@@ -19,6 +19,14 @@ def make_single_prompt_model(model: BaseModel,
                              config.prompt_train_batch_size,
                              config.prompt_infer_batch_size,
                              config.source_str)
+
+
+def make_input_conditioned_prompt_model(model: BaseModel,
+                                        config: "DictConfig") -> InputConditionedPromptModel:
+    return InputConditionedPromptModel(model,
+                                       config.prompt_length,
+                                       config.source_train_reps,
+                                       config.source_infer_reps)
 
 
 @dataclass
@@ -46,3 +54,10 @@ class SinglePromptModelConfig:
     prompt_train_batch_size: int = 8
     prompt_infer_batch_size: int = 8
     source_str: str = "<|endoftext|>"
+
+    
+@dataclass
+class InputConditionedPromptModelConfig:
+    prompt_length: int = 5
+    source_train_reps: int = 1
+    source_infer_reps: int = 1

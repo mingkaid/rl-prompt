@@ -1,5 +1,9 @@
 # Prompted Text Style Transfer Example
 
+**Updates**: 
+- You can find the outputs for the Yelp test set in the `test_outputs` folder. We uploaded the outputs both in the natural GPT-2 format (`*.clean`) and in the typical space-delimited format (`*.raw`), which we converted from `clean` using SpaCyxw
+- You can also find the code for training and evaluating input-specific prompts in the folder `input_conditioned_prompt_experiment`, which often achieves better performance
+
 We experiment on Yelp for sentiment and Shakespeare for authorship transfer, respectively. 
 For Shakespeare, we test for [few-shot text style transfer](https://arxiv.org/abs/2010.03802) by only training on 100 examples per style. 
 Specifically, we provide 3 different training sets and their corresponding style classifiers.
@@ -71,11 +75,11 @@ We load our data using the `load_text_style_transfer_dataset()` function in the 
 ### Download Pretrained Test Classifiers
 You can download the evaluation style classifiers with the following command
 ```
-python download_tst_classifiers.py --model_name [yelp_test, shakespeare_test_all]
+python scripts/download_tst_classifiers.py --model_name [yelp-test, shakespeare-test-all]
 ```
 And the fine-tuned language models for perplexity as below
 ```
-python download_ppl_lms.py --model_name [yelp, shakespeare]
+python scripts/download_ppl_lms.py --model_name [yelp, shakespeare]
 ```
 After that, you can run the evaluation script with the command below
 ```
