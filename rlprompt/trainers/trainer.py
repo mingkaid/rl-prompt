@@ -5,6 +5,7 @@ from typing import Optional, Callable, Dict, Any, Union, List
 import os
 import wandb
 import json
+import click
 
 from rlprompt.modules import BaseModule
 from rlprompt.utils import utils
@@ -197,7 +198,8 @@ class Trainer:
     def evaluate(
         self,
         eval_dataset: Optional[Dataset] = None,
-        output_save_path: Optional[str] = None
+        output_save_path: Optional[str] = None,
+        compute_scores: bool = True
     ) -> Dict[str, np.number]:
         if eval_dataset is None:
             eval_dataset = self.eval_dataset

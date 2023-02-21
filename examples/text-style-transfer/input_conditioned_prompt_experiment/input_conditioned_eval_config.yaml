@@ -1,0 +1,16 @@
+# Text Style Transfer Evaluation Config
+defaults:
+  - base_eval
+  - _self_
+# Data
+dataset: "???"
+dataset_seed: null
+base_path: "../data"
+# Evaluation
+prompts_0_to_1_path: null
+prompts_1_to_0_path: null
+# Reward
+task_lm: "distilgpt2"
+style_tokenizer: "bert-base-uncased"
+lower_outputs: true
+control_output_length: true
