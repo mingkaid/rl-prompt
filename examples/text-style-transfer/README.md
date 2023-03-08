@@ -89,6 +89,8 @@ python run_eval.py \
     dataset_seed=[0, 1, 2 (skip for yelp)] \
     task_lm=[distilgpt2, gpt2, gpt2-medium, gpt2-large, gpt2-xl] \
     prompt_0_to_1=[learned prompt for the 0_to_1 direction (optional)] \
-    prompt_1_to_0=[learned prompt for the 1_to_0 direction (optional)]
+    prompt_1_to_0=[learned prompt for the 1_to_0 direction (optional)] \
+    prompt_0_to_1_path=[file containing the prompt for the 0_to_1 direction (optional)] \
+    prompt_1_to_0_path=[file containing the prompt for the 1_to_0 direction (optional)]
 ```
 The outputs will be saved at `evaluation/outputs/[evaluation-date]/[evaluation-time]`

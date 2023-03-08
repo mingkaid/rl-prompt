@@ -22,6 +22,8 @@ from dataclasses import dataclass
 class TextStyleTransferEvaluationConfig:
     prompt_0_to_1: Optional[str] = None
     prompt_1_to_0: Optional[str] = None
+    prompt_0_to_1_path: Optional[str] = None
+    prompt_1_to_0_path: Optional[str] = None
 
 
 # Compose default config
@@ -36,8 +38,22 @@ ppl_lm_dict = {'yelp': './ppl/gpt2-yelp',
 @hydra.main(version_base=None, config_path="./", config_name="eval_config")
 def main(config: "DictConfig"):
     colorful_print(OmegaConf.to_yaml(config), fg='red')
+    
+    if config.prompt_0_to_1_path is not None and config.prompt_0_to_1 is None: 
+        with open(config.prompt_0_to_1_path, 'r') as fr: 
+            for line in fr: 
+                config.prompt_0_to_1 = line
+                break
+    if config.prompt_1_to_0_path is not None and config.prompt_1_to_0 is None: 
+        with open(config.prompt_1_to_0_path, 'r') as fr: 
+            for line in fr: 
+                config.prompt_1_to_0 = line
+                break
+    
     if config.prompt_0_to_1 is None and config.prompt_1_to_0 is None: 
         raise ValueError('Need to supply at least one prompt')
+        
+    
     output_dir = get_hydra_output_dir()
 
     device_id = 0
