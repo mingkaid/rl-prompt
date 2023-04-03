@@ -31,7 +31,7 @@ pip install -r requirements.txt
 
 You can download the pretrained style classifiers for training by running the script below
 ```
-python download_tst_classifiers.py \
+python scripts/download_tst_classifiers.py \
     --model_name [yelp-train,
                   shakespeare-train-100-0,
                   shakespeare-train-100-1,
