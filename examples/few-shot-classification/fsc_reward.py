@@ -62,7 +62,7 @@ class PromptedClassificationReward(BaseReward):
             self.template = template
         self._counter = 0
 
-    def load_default_template(self) -> List[str]:
+    def load_default_template(self) -> str:
         if self.is_mask_lm:
             mask_token = self._tokenizer.mask_token
             template = f"{{sentence_1}} {{prompt}} {mask_token} ."
